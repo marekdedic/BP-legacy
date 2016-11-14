@@ -1,45 +1,60 @@
 import JSON
 
-#=type Url
-  encrypted::Bool;
-  server::Array{AbstractString, 1};
-  port::Int64;
-  path::Array{AbstractString, 1};
-  vars::Array{Tuple{AbstractString, AbstractString}, 1};
-  #MyUrl() = Url(false, Array{String, 1}, 80, Array{String, 1}, Array{Tuple{String, String}, 1});
-  #MyUrl() = return;
+type Url
+	protocol::AbstractString
+	domain::AbstractArray{AbstractString, 1};
+	port::Int64;
+	path::AbstractArray{AbstractString, 1};
+	query::AbstractArray{Tuple{AbstractString, AbstractString}, 1};
 end;
+Url() = Url("", [], 80, [], []);
 
-function readURL(input::String)::Url
-  output::Url = Url(false, ["One"], 80, ["Two"], [("Three", "Four")]);
-  if(input[1:7] == "http://")
-    input = input[8:end];
-    output.encrypted = false;
-  elseif(input[1:8] == "https://")
-    input = input[9:end];
-    output.encrypted = true;
+function readURL(input::AbstractString)
+  output::Url = Url();
+  splitted = split(input, "://");
+  output.protocol = splitted[1];
+  if in(':', splitted[2])
+	  splitted = split(splitted[2], ":");
+	  domain = splitted[1];
+	  splitted = split(splitted[2], "/");
+	  output.port = parse(Int64, splitted[1]);
+	  splice!(splitted, 1);
   end
+  query = split(splitted[end], "?");
+  splitted[end] = query[1];
+  query = query[2];
+  for s in split(domain, ".")
+	  push!(output.domain, s);
+  end
+  for s in splitted
+	  push!(output.path, s);
+  end
+  for s in split(query, "&")
+	  keyvalue = split(s, "=");
+	  push!(output.query, (keyvalue[1], keyvalue[2]));
+  end
+  println(output);
   return output;
-end=#
+end
 
 function trigrams(input::AbstractString)
 	output::Array{AbstractString} = [];
 	i::Int64 = 1;
-  for c in input
-	  push!(output, AbstractString(""));
-	  output[i] = string(output[i], c);
-	  if i > 1
-		  output[i - 1] = string(output[i - 1], c);
-	  end
-	  if i > 2
-		  output[i - 2] = string(output[i - 2], c);
-	  end
-	  i += 1;
-  end
-  return output;
+	for c in input
+		push!(output, AbstractString(""));
+		output[i] = string(output[i], c);
+		if i > 1
+			output[i - 1] = string(output[i - 1], c);
+		end
+		if i > 2
+			output[i - 2] = string(output[i - 2], c);
+		end
+		i += 1;
+	end
+	return output;
 end
 
-trigrams("http://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
+readURL("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
 
 # function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
 #=function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
