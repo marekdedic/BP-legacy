@@ -1,4 +1,8 @@
+push!(LOAD_PATH, "EduNets/src");
+
+import GZip
 import JSON
+import EduNets
 
 type Url
 	protocol::AbstractString
@@ -9,7 +13,7 @@ type Url
 end;
 Url() = Url("", [], 80, [], []);
 
-function readURL(input::AbstractString)
+function readURL(input::AbstractString)::Url
   output::Url = Url();
   splitted = split(input, "://");
   output.protocol = splitted[1];
@@ -37,7 +41,7 @@ function readURL(input::AbstractString)
   return output;
 end
 
-function trigrams(input::AbstractString)
+function trigrams(input::AbstractString)::Array{AbstractString}
 	output::Array{AbstractString} = [];
 	i::Int64 = 1;
 	for c in input
@@ -54,7 +58,21 @@ function trigrams(input::AbstractString)
 	return output;
 end
 
-readURL("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
+function features(input::AbstractString, modulo::Int64=1024)::Array{UInt32}
+	output::Array{UInt32} = [];
+	for i in trigrams(input)
+		push!(output, mod(sum(transcode(UInt32, i)), modulo));
+	end
+	return output;
+end
+
+function loadJSON(input::AbstractString)
+	g = GZip.open(input);
+	j = JSON.parse(g);
+end
+
+features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
+loadJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
 
 # function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
 #=function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
