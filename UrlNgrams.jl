@@ -58,8 +58,8 @@ function trigrams(input::AbstractString)::Array{AbstractString}
 	return output;
 end
 
-function features(input::AbstractString, modulo::Int64=2053)::SparseVector{UInt8}
-	output::SparseVector{UInt8} = spzeros(modulo);
+function features(input::AbstractString, modulo::Int64=2053)::SparseVector{Float32}
+	output::SparseVector{Float32} = spzeros(Float32, modulo);
 	for i in trigrams(input)
 		index = mod(hash(i), modulo);
 		output[index + 1] += 1;
@@ -135,23 +135,28 @@ function loadResultFromJSON(file::AbstractString)::Bool
 	return positiveCount >= 5;
 end
 
-function loadThreadGrid(dir::AbstractString)
-	A::Array{SparseVector{UInt8}} = [];
-	B::Array{Bool} = [];
+function loadThreadGrid(dir::AbstractString)::EduNets.SingleBagDataset
+	featureMatrix::Array{Float32, 2} = Array{Float32, 2}(0, 2053);
+	results::Array{Bool} = [];
+	bags::Array = [];
+	maxBag::Int64 = 1;
 	for (root, dirs, files) in walkdir(dir)
-		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
+		for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
 				result = loadResultFromJSON(filename * ".vt.json");
 				for url in urls
-					push!(A, features(url));
-					push!(B, result);
+					featureMatrix = vcat(featureMatrix, features(url)');
+					push!(results, result);
+					push!(bags, maxBag);
 				end
 			end
 		end
+		maxBag += 1;
 	end
+	return EduNets.SingleBagDataset(features, results, bags);
 end
 
 features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
