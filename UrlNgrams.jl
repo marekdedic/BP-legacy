@@ -58,21 +58,106 @@ function trigrams(input::AbstractString)::Array{AbstractString}
 	return output;
 end
 
-function features(input::AbstractString, modulo::Int64=1024)::Array{UInt32}
-	output::Array{UInt32} = [];
+function features(input::AbstractString, modulo::Int64=2053)::SparseVector{UInt8}
+	output::SparseVector{UInt8} = spzeros(modulo);
 	for i in trigrams(input)
-		push!(output, mod(sum(transcode(UInt32, i)), modulo));
+		index = mod(hash(i), modulo);
+		output[index + 1] += 1;
 	end
 	return output;
 end
 
-function loadJSON(input::AbstractString)
-	g = GZip.open(input);
-	j = JSON.parse(g);
+function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
+	output::Array{AbstractString} = [];
+	GZip.open(file) do g
+		for line in eachline(g)
+			json = JSON.parse(line);
+			try;
+				ohttp = json["ohttp"];
+				if ohttp != nothing
+					url = ohttp["Host"] * ohttp["uri"];
+					push!(output, url);
+				end
+			end
+		end
+	end
+	return output;
+end
+
+function loadResultFromJSON(file::AbstractString)::Bool
+	positiveCount::UInt8 = 0;
+	open(file) do f
+		json = JSON.parse(f);
+		try
+			scans = json["scans"];
+			try
+				if(scans["Malwarebytes"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["BitDefender"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["Symantec"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["ESET-NOD32"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["Avast"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["Kaspersky"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["Avira"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+			try
+				if(scans["AVG"]["detected"] == true)
+					positiveCount += 1;
+				end
+			end
+		end
+	end
+	return positiveCount >= 5;
+end
+
+function loadThreadGrid(dir::AbstractString)
+	A::Array{SparseVector{UInt8}} = [];
+	B::Array{Bool} = [];
+	for (root, dirs, files) in walkdir(dir)
+		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
+			path = joinpath(root, file);
+			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
+			if isfile(filename * ".vt.json")
+				urls = loadUrlFromJSON(filename * ".joy.json.gz");
+				result = loadResultFromJSON(filename * ".vt.json");
+				for url in urls
+					push!(A, features(url));
+					push!(B, result);
+				end
+			end
+		end
+	end
 end
 
 features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
-loadJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
+loadUrlFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
+loadResultFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.vt.json");
+loadThreadGrid("../threatGridSamples2/0")
 
 # function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
 #=function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
