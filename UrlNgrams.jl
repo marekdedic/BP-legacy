@@ -141,7 +141,7 @@ function loadThreadGrid(dir::AbstractString)::EduNets.SingleBagDataset
 	bags::Array = [];
 	maxBag::Int64 = 1;
 	for (root, dirs, files) in walkdir(dir)
-		for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
+		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
