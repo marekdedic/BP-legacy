@@ -41,9 +41,9 @@ function readURL(input::AbstractString)::Url
   return output;
 end
 
-function trigrams(input::AbstractString)::Array{AbstractString}
-	output::Array{AbstractString} = [];
-	i::Int64 = 1;
+function trigrams(input::AbstractStri ng)::Array{AbstractString}
+	output = Array{AbstractString}(0);
+	i = 1;
 	for c in input
 		push!(output, AbstractString(""));
 		output[i] = string(output[i], c);
@@ -59,7 +59,7 @@ function trigrams(input::AbstractString)::Array{AbstractString}
 end
 
 function features(input::AbstractString, modulo::Int64=2053)::SparseVector{Float32}
-	output::SparseVector{Float32} = spzeros(Float32, modulo);
+	output = spzeros(Float32, modulo);
 	for i in trigrams(input)
 		index = mod(hash(i), modulo);
 		output[index + 1] += 1;
@@ -68,7 +68,7 @@ function features(input::AbstractString, modulo::Int64=2053)::SparseVector{Float
 end
 
 function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
-	output::Array{AbstractString} = [];
+	output = Array{AbstractString}(0);
 	GZip.open(file) do g
 		for line in eachline(g)
 			json = JSON.parse(line);
@@ -84,8 +84,8 @@ function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
 	return output;
 end
 
-function loadResultFromJSON(file::AbstractString)::Bool
-	positiveCount::UInt8 = 0;
+function loadResultFromJSON(file::AbstractString)::Int64
+	positiveCount= 0;
 	open(file) do f
 		json = JSON.parse(f);
 		try
@@ -132,14 +132,14 @@ function loadResultFromJSON(file::AbstractString)::Bool
 			end
 		end
 	end
-	return positiveCount >= 5;
+	return positiveCount >= 5 ? 1 : 0;
 end
 
-function loadThreadGrid(dir::AbstractString)::EduNets.SingleBagDataset
-	featureMatrix::Array{Float32, 2} = Array{Float32, 2}(0, 2053);
-	results::Array{Bool} = [];
-	bags::Array = [];
-	maxBag::Int64 = 1;
+function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
+	featureMatrix = Array{Float32, 2}(0, 2053);
+	results = Array{Int64}(0);
+	bags = Array{Int}(0);
+	maxBag= 1;
 	for (root, dirs, files) in walkdir(dir)
 		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);
@@ -156,16 +156,16 @@ function loadThreadGrid(dir::AbstractString)::EduNets.SingleBagDataset
 		end
 		maxBag += 1;
 	end
-	return EduNets.SingleBagDataset(features, results, bags);
+	return EduNets.SingleBagDataset(featureMatrix, results, bags);
 end
 
 features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
 loadUrlFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
 loadResultFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.vt.json");
-loadThreadGrid("../threatGridSamples2/0")
+sbDataset = loadThreatGrid("../threatGridSamples2/02")
 
-# function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
-#=function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
+#=function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
+function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
   negfiles=filter(x->contains(x,"neg.jld"),filenames)
   posfiles=filter(x->contains(x,"pos.jld"),filenames)
   sc=EduNets.ScalingLayer(scalingfile,T=T);
