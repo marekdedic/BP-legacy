@@ -41,22 +41,23 @@ function readURL(input::AbstractString)::Url
   return output;
 end
 
-function trigrams(input::AbstractStri ng)::Array{AbstractString}
+function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
 	i = 1;
 	for c in input
 		push!(output, AbstractString(""));
 		output[i] = string(output[i], c);
-		if i > 1
-			output[i - 1] = string(output[i - 1], c);
-		end
-		if i > 2
-			output[i - 2] = string(output[i - 2], c);
+		for j in 1:(n - 1)
+			if i > j
+				output[i - j] = string(output[i - j], c);
+			end
 		end
 		i += 1;
 	end
 	return output;
 end
+
+trigrams(input::AbstractString) = ngrams(input, 3);
 
 function features(input::AbstractString, modulo::Int64=2053)::SparseVector{Float32}
 	output = spzeros(Float32, modulo);
