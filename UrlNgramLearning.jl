@@ -4,43 +4,6 @@ import GZip
 import JSON
 import EduNets
 
-type Url
-	protocol::AbstractString
-	domain::AbstractArray{AbstractString, 1};
-	port::Int64;
-	path::AbstractArray{AbstractString, 1};
-	query::AbstractArray{Tuple{AbstractString, AbstractString}, 1};
-end;
-Url() = Url("", [], 80, [], []);
-
-function readURL(input::AbstractString)::Url
-  output::Url = Url();
-  splitted = split(input, "://");
-  output.protocol = splitted[1];
-  if in(':', splitted[2])
-	  splitted = split(splitted[2], ":");
-	  domain = splitted[1];
-	  splitted = split(splitted[2], "/");
-	  output.port = parse(Int64, splitted[1]);
-	  splice!(splitted, 1);
-  end
-  query = split(splitted[end], "?");
-  splitted[end] = query[1];
-  query = query[2];
-  for s in split(domain, ".")
-	  push!(output.domain, s);
-  end
-  for s in splitted
-	  push!(output.path, s);
-  end
-  for s in split(query, "&")
-	  keyvalue = split(s, "=");
-	  push!(output.query, (keyvalue[1], keyvalue[2]));
-  end
-  println(output);
-  return output;
-end
-
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
 	i = 1;
@@ -160,9 +123,9 @@ function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
 	return EduNets.SingleBagDataset(featureMatrix, results, bags);
 end
 
-features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
-loadUrlFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
-loadResultFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.vt.json");
+#features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
+#loadUrlFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
+#loadResultFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.vt.json");
 sbDataset = loadThreatGrid("../threatGridSamples2/02")
 
 #=function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
