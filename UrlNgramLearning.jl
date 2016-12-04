@@ -100,10 +100,13 @@ function loadResultFromJSON(file::AbstractString)::Int64
 end
 
 function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
-	featureMatrix = Array{Float32, 2}(0, 2053);
-	results = Array{Int64}(0);
-	bags = Array{Int}(0);
-	maxBag= 1;
+	featureMatrix = [Array{Float32, 2}(0, 2053) for i in 1:Threads.nthreads()];
+	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
+	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
+	maxBag = [1 for i in 1:Threads.nthreads()];
+	aggregatedFeatures = Array{Float32, 2}(0, 2053);
+	aggregatedResults = Array{Int64}(0);
+	aggregatedBags = Array{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
 		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);
@@ -112,15 +115,21 @@ function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
 				result = loadResultFromJSON(filename * ".vt.json");
 				for url in urls
-					featureMatrix = vcat(featureMatrix, features(url)');
-					push!(results, result);
-					push!(bags, maxBag);
+					featureMatrix[Threads.threadid()] = vcat(featureMatrix[Threads.threadid()], features(url)');
+					push!(results[Threads.threadid()], result);
+					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 				end
 			end
+			maxBag[Threads.threadid()] += 1;
 		end
-		maxBag += 1;
 	end
-	return EduNets.SingleBagDataset(featureMatrix, results, bags);
+	for i in 1:Threads.nthreads()
+		aggregatedFeatures = vcat(aggregatedFeatures, featureMatrix[i]);
+		aggregatedResults = vcat(aggregatedResults, results[i]);
+		bags[i] += size(aggregatedBags)[1];
+		aggregatedBags = vcat(aggregatedBags, bags[i]);
+	end
+	return EduNets.SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
 #features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
