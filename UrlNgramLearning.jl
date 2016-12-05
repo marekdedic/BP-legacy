@@ -100,11 +100,11 @@ function loadResultFromJSON(file::AbstractString)::Int64
 end
 
 function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
-	featureMatrix = [Array{Float32, 2}(0, 2053) for i in 1:Threads.nthreads()];
+	featureMatrix = [Array{Float32, 2}(2053, 0) for i in 1:Threads.nthreads()];
 	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
 	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
 	maxBag = [1 for i in 1:Threads.nthreads()];
-	aggregatedFeatures = Array{Float32, 2}(0, 2053);
+	aggregatedFeatures = Array{Float32, 2}(2053, 0);
 	aggregatedResults = Array{Int64}(0);
 	aggregatedBags = Array{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
@@ -115,7 +115,7 @@ function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
 				result = loadResultFromJSON(filename * ".vt.json");
 				for url in urls
-					featureMatrix[Threads.threadid()] = vcat(featureMatrix[Threads.threadid()], features(url)');
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], features(url));
 					push!(results[Threads.threadid()], result);
 					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 				end
@@ -124,7 +124,7 @@ function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
 		end
 	end
 	for i in 1:Threads.nthreads()
-		aggregatedFeatures = vcat(aggregatedFeatures, featureMatrix[i]);
+		aggregatedFeatures = hcat(aggregatedFeatures, featureMatrix[i]);
 		aggregatedResults = vcat(aggregatedResults, results[i]);
 		bags[i] += size(aggregatedBags)[1];
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
@@ -135,7 +135,7 @@ end
 #features("https://mojeweby.cz:8080/directory/index.php?user=guest&topic=main");
 #loadUrlFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.joy.json.gz");
 #loadResultFromJSON("../threatGridSamples2/0/0a00bf8e8c81544927d3fdd1941c576b.vt.json");
-sbDataset = loadThreatGrid("../threatGridSamples2/02")
+sbDataset = loadThreatGrid("../threatGridSamples2/0")
 
 #=function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
 function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
