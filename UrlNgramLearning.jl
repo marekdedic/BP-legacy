@@ -132,9 +132,11 @@ function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
 	return EduNets.SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-sbDataset = loadThreatGrid("../threatGridSamples2/02");
-sbModel = EduNets.SingleBagModel(EduNets.ReluLayer((0, 100); T=Float32), EduNets.MeanPoolingLayer(1; T=Float32), EduNets.ReluLayer((0, 100); T=Float32), EduNets.HingeLoss(; T=Float32));
-EduNets.init!(sbModel, sbDataset);
+insideLayers = 100;
+sbDataset = loadThreatGrid("../threatGridSamples2/0");
+sbModel = EduNets.SingleBagModel(StackedBlocks(EduNets.ReluLayer((size(sbDataset.x, 1), insideLayers); T=Float32), EduNets.ReluLayer((insideLayers, insideLayers); T=Float32);T=Float32), EduNets.MeanPoolingLayer(insideLayers; T=Float32), EduNets.LinearLayer((insideLayers, 1); T=Float32), EduNets.HingeLoss(; T=Float32); T=Float32);
+EduNets.init!(sbModel, sample(sbDataset, [100, 100]));
+sbModel2 = deepcopy(sbModel);
 
 #=function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
 function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
