@@ -2,6 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 import GZip
 import JSON
+import JLD
 using EduNets
 
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
@@ -132,26 +133,8 @@ function loadThreatGrid(dir::AbstractString)::SingleBagDataset
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-insideLayers = 100;
-sbDataset = loadThreatGrid("../threatGridSamples2/0");
-sbModel = SingleBagModel(StackedBlocks(ReluLayer((size(sbDataset.x, 1), insideLayers); T=Float32), ReluLayer((insideLayers, insideLayers); T=Float32);T=Float32), MeanPoolingLayer(insideLayers; T=Float32), LinearLayer((insideLayers, 1); T=Float32), HingeLoss(; T=Float32); T=Float32);
-init!(sbModel, sample(sbDataset, [100, 100]));
-sbModel2 = deepcopy(sbModel);
-
-function train(model::SingleBagModel, ds::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6)
-  sc=ScalingLayer(ds.x);
-  g=deepcopy(model)
-  gg=model2vector(model);
-
-  function optFun(x::Vector)
-    update!(model,x)
-    dss=sample(ds,[1000,1000]);
-    f=gradient!(model,dss,g)
-    f+=l1regularize!(model,g, T(lambda));
-    model2vector!(g,gg)
-    return(f,gg)
-  end
-
-  theta=model2vector(model);
-  adam(optFun,theta, AdamOptions(;maxIter=1000))
+function parseDataset(dir::AbstractString, file::AbstractString="dataset.jld")::Void
+	JLD.save(file, "dataset", loadThreatGrid(dir));
+	return nothing;
 end
+
