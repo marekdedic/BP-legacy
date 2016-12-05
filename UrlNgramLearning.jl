@@ -138,37 +138,20 @@ sbModel = EduNets.SingleBagModel(StackedBlocks(EduNets.ReluLayer((size(sbDataset
 EduNets.init!(sbModel, sample(sbDataset, [100, 100]));
 sbModel2 = deepcopy(sbModel);
 
-#=function singletrain(filenames,model::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
-function singletrain(filenames,model::EduNets.AbstractModel,coder::EduNets.AbstractModel,scalingfile,oprefix;preprocess::Array{EduNets.AbstractModel,1}=Array{EduNets.AbstractModel,1}(0),lambda::Float32=1e-6,T::DataType=Float32)
-  negfiles=filter(x->contains(x,"neg.jld"),filenames)
-  posfiles=filter(x->contains(x,"pos.jld"),filenames)
-  sc=EduNets.ScalingLayer(scalingfile,T=T);
+function train(model::EduNets.SingleBagModel, ds::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6)
+  sc=EduNets.ScalingLayer(ds.x);
   g=deepcopy(model)
-  gg=ReadData.model2vector(model);
+  gg=model2vector(model);
 
-  function loaddata(model,errfile)
-    ds=ReadData.loadscattered(ReadData.samplefiles((negfiles,posfiles),[3,3]);T=T);
-    EduNets.scale!(ds.x,sc);
-    ds.x=EduNets.forward!(coder,ds.x);
-    ds.y[ds.y.>1]=2;
-
-    err=forward(model.loss,forward!(model,ds),ds.y);
-    println("error on the fresh dataset");
-    open(errfile,"a") do fid
-      write(fid,@sprintf("%g\n",err))
-    end
-    return(ds)
-  end
-
-  function optFun(ds::EduNets.DoubleBagDataset,x::Vector)
-    ReadData.update!(model,x)
-    dss=EduNets.sample(ds,[1000,1000];subbagsize=100);
-    f=ReadData.gradient!(model,dss,g)
-    f+=ReadData.l1regularize!(model,g;lambda=T(lambda/length(x)));
-    ReadData.model2vector!(g,gg)
+  function optFun(x::Vector)
+    update!(model,x)
+    dss=EduNets.sample(ds,[1000,1000]);
+    f=gradient!(model,dss,g)
+    f+=l1regularize!(model,g, T(lambda));
+    model2vector!(g,gg)
     return(f,gg)
   end
 
-  theta=ReadData.model2vector(model);
-  EduNets.adam(()->loaddata(model,oprefix*".err"),optFun,theta;options=EduNets.AdamOptions(;maxIter=1000,progressFile=oprefix),numberofdataloads=300)
-end=#
+  theta=model2vector(model);
+  EduNets.adam(optFun,theta, EduNets.AdamOptions(;maxIter=1000))
+end
