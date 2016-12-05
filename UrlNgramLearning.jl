@@ -2,7 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 import GZip
 import JSON
-import EduNets
+using EduNets
 
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
@@ -99,7 +99,7 @@ function loadResultFromJSON(file::AbstractString)::Int64
 	return positiveCount >= 5 ? 2 : 1;
 end
 
-function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
+function loadThreatGrid(dir::AbstractString)::SingleBagDataset
 	featureMatrix = [Array{Float32, 2}(2053, 0) for i in 1:Threads.nthreads()];
 	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
 	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
@@ -129,23 +129,23 @@ function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
 		bags[i] += size(aggregatedBags)[1];
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
 	end
-	return EduNets.SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
+	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
 insideLayers = 100;
 sbDataset = loadThreatGrid("../threatGridSamples2/0");
-sbModel = EduNets.SingleBagModel(StackedBlocks(EduNets.ReluLayer((size(sbDataset.x, 1), insideLayers); T=Float32), EduNets.ReluLayer((insideLayers, insideLayers); T=Float32);T=Float32), EduNets.MeanPoolingLayer(insideLayers; T=Float32), EduNets.LinearLayer((insideLayers, 1); T=Float32), EduNets.HingeLoss(; T=Float32); T=Float32);
-EduNets.init!(sbModel, sample(sbDataset, [100, 100]));
+sbModel = SingleBagModel(StackedBlocks(ReluLayer((size(sbDataset.x, 1), insideLayers); T=Float32), ReluLayer((insideLayers, insideLayers); T=Float32);T=Float32), MeanPoolingLayer(insideLayers; T=Float32), LinearLayer((insideLayers, 1); T=Float32), HingeLoss(; T=Float32); T=Float32);
+init!(sbModel, sample(sbDataset, [100, 100]));
 sbModel2 = deepcopy(sbModel);
 
-function train(model::EduNets.SingleBagModel, ds::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6)
-  sc=EduNets.ScalingLayer(ds.x);
+function train(model::SingleBagModel, ds::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6)
+  sc=ScalingLayer(ds.x);
   g=deepcopy(model)
   gg=model2vector(model);
 
   function optFun(x::Vector)
     update!(model,x)
-    dss=EduNets.sample(ds,[1000,1000]);
+    dss=sample(ds,[1000,1000]);
     f=gradient!(model,dss,g)
     f+=l1regularize!(model,g, T(lambda));
     model2vector!(g,gg)
@@ -153,5 +153,5 @@ function train(model::EduNets.SingleBagModel, ds::SingleBagDataset; T::DataType=
   end
 
   theta=model2vector(model);
-  EduNets.adam(optFun,theta, EduNets.AdamOptions(;maxIter=1000))
+  adam(optFun,theta, AdamOptions(;maxIter=1000))
 end
