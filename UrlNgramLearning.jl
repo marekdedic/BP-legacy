@@ -96,7 +96,7 @@ function loadResultFromJSON(file::AbstractString)::Int64
 			end
 		end
 	end
-	return positiveCount >= 5 ? 1 : 0;
+	return positiveCount >= 5 ? 2 : 1;
 end
 
 function loadThreatGrid(dir::AbstractString)::EduNets.SingleBagDataset
