@@ -2,7 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
-function trainModel(model::SingleBagModel, dataset::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6)::Void
+function trainModel!(model::SingleBagModel, dataset::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
   sc=ScalingLayer(dataset.x);
   g=deepcopy(model);
   gg=model2vector(model);
@@ -17,6 +17,6 @@ function trainModel(model::SingleBagModel, dataset::SingleBagDataset; T::DataTyp
   end
 
   theta=model2vector(model);
-  adam(optFun,theta, AdamOptions(;maxIter=1000));
+  adam(optFun,theta, AdamOptions(;maxIter=iter));
   return nothing;
 end
