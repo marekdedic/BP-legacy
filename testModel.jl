@@ -2,14 +2,14 @@ push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
-function trainModel!(model::SingleBagModel, dataset::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
+function testModel(model::SingleBagModel, dataset::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)
   sc=ScalingLayer(dataset.x);
   g=deepcopy(model);
   gg=model2vector(model);
 
   function optFun(x::Vector)
     update!(model,x);
-    dss=sample(dataset,[1000,1000]);
+    dss=sample(dataset,[10,10]);
     f=gradient!(model,dss,g);
     f+=l1regularize!(model,g, T(lambda));
     model2vector!(g,gg);
@@ -17,6 +17,5 @@ function trainModel!(model::SingleBagModel, dataset::SingleBagDataset; T::DataTy
   end
 
   theta=model2vector(model);
-  adam(optFun, theta, AdamOptions(;maxIter=iter));
-  return nothing;
+	return testgradient(optFun, theta; verbose=1);
 end
