@@ -5,5 +5,6 @@ include("include.jl");
 (model, dataset) = initializeModel();
 trainModel!(model, dataset);
 
-testModelROC(model, dataset);
+#testModelROCCustom(model, dataset);
+#testModelROC(model, dataset);
 
