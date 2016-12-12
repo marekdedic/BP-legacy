@@ -1,21 +1,25 @@
 push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
+using ROCAnalysis, Winston, MLPlots
 
-function threshold(input::StridedArray{Float32}, threshold::Float32)::Array{Int64}
-	output = Array{Int64, 1}(length(input));
-	for i in 1:length(input)
-		if(input[i] < threshold)
-			output[i] = 1;
+function separate(predicted::StridedArray{Float32}, real::Array{Int64})::Tuple{Array{Float32}, Array{Float32}}
+	target = Array{Float32, 1}(0);
+	nontarget = Array{Float32, 1}(0);
+	for i in 1:length(real)
+		if(real[i] == 2)
+			push!(target, predicted[i]);
 		else
-			output[i] = 2;
+			push!(nontarget, predicted[i]);
 		end
 	end
-	return output;
+	return (target, nontarget);
 end
 
-function testModel(model::SingleBagModel, dataset::SingleBagDataset)
+function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
-	clamped = threshold(out, 0.5f0);
-	return clamped;
+	(target, nontarget) = separate(out, dataset.y);
+	rocPlot = roc(target, nontarget);
+	Winston.plot(rocPlot);
 end
+
