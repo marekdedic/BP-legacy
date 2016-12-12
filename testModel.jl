@@ -81,15 +81,17 @@ function testModelROCCustom(model::SingleBagModel, dataset::SingleBagDataset)
 	datC = deepcopy(dataset);
 	out = forward!(modC, datC);
 	samples = 100;
-	TPR = Array{Float32, 1}(samples);
-	FPR = Array{Float32, 1}(samples);
-	for i in 1:samples
-		clamped = threshold(out, Float32(i / samples));
-		(truePositiveRate, falsePositiveRate) = TPRFPR(clamped, datC.y);
-		push!(TPR, truePositiveRate);
-		push!(FPR, falsePositiveRate);
+	pmask=dataset.y.==2
+	nmask=dataset.y.==1
+	thresholds=sort(out[nmask],rev=true)
+	TPR=zeros(sum(nmask))
+	FPR=zeros(sum(nmask))
+	for (i,th) in enumerate(thresholds)
+		FPR[i]=mean(out[nmask].>th)
+		TPR[i]=mean(out[pmask].>th)
 	end
-	plot(TPR, FPR);
+	println(hcat(TPR, FPR));
+	plot(FPR,TPR);
 end
 
 function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
