@@ -5,18 +5,6 @@ using ROCAnalysis
 using MLPlots
 import Winston
 
-function threshold(input::StridedArray{Float32}, threshold::Float32)::Array{Int64}
-	output = Array{Int64, 1}(length(input));
-	for i in 1:length(input)
-		if(input[i] < threshold)
-			output[i] = 1;
-		else
-			output[i] = 2;
-		end
-	end
-	return output;
-end
-
 function separate(predicted::StridedArray{Float32}, real::Array{Int64})::Tuple{Array{Float32}, Array{Float32}}
 	target = Array{Float64, 1}(0);
 	nontarget = Array{Float64, 1}(0);
@@ -28,53 +16,7 @@ function separate(predicted::StridedArray{Float32}, real::Array{Int64})::Tuple{A
 		end
 	end
 	return (target, nontarget);
-end
-
-function PR(predicted::Array{Int64}, real::Array{Int64})::Tuple{Float32, Float32}
-	tp = 0;
-	fp = 0;
-	fn = 0;
-	for i in 1:length(real)
-		if(predicted[i] == 2 && real[i] == 2)
-			tp += 1;
-		end
-		if(predicted[i] == 2 && real[i] == 1)
-			fp += 1;
-		end
-		if(predicted[i] == 1 && real[i] == 2)
-			fn += 1;
-		end
-	end
-	return (tp / (tp + fp), tp / (tp + fn));
-end
-
-function TPRFPR(predicted::Array{Int64}, real::Array{Int64})::Tuple{Float32, Float32}
-	tp = 0;
-	fp = 0;
-	tn = 0;
-	fn = 0;
-	for i in 1:length(real)
-		if(predicted[i] == 2 && real[i] == 2)
-			tp += 1;
-		end
-		if(predicted[i] == 2 && real[i] == 1)
-			fp += 1;
-		end
-		if(predicted[i] == 1 && real[i] == 2)
-			fn += 1;
-		end
-		if(predicted[i] == 1 && real[i] == 1)
-			tn += 1;
-		end
-	end
-	return (fp / (fp + tn), tp / (tp + fn));
-end
-
-function ROCValue(T::Float32, predicted::StridedArray{Float32}, real::Array{Int64})::Tuple{Float32, Float32}
-	clamped = threshold(predicted, T);
-	(truePositiveRate, falsePositiveRate) = TPRFPR(clamped, real);
-	return (truePositiveRate, falsePositiveRate);
-end
+end			
 
 function testModelROCCustom(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
@@ -105,9 +47,9 @@ function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
 	Precision = zeros(sum(nmask)); # Zero array with length equal to number of real negatives
 	Recall = zeros(sum(nmask));
 	for (i, it) in enumerate(thresholds)
+		Recall[i] = mean(out[pmask] .> it);
 		ppmask = out .> it;
 		Precision[i] = mean(dataset.y[ppmask] .== 2)
-		Recall[i] = mean(out[pmask] .> it);
 	end
 	plot(Recall, Precision; xlabel = "Recall", ylabel = "Precision");
 end
