@@ -5,7 +5,7 @@ using ROCAnalysis
 using MLPlots
 import Winston
 
-function testModelROCCustom(model::SingleBagModel, dataset::SingleBagDataset)
+function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
 	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2
 	nmask = dataset.y .== 1;
@@ -20,7 +20,7 @@ function testModelROCCustom(model::SingleBagModel, dataset::SingleBagDataset)
 	plot!(identity; linestyle = :dot, label="");
 end
 
-function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
+function testModelROCAnalysis(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
 	rocPlot = roc(out[dataset.y .== 2], out[dataset.y .!= 2])
 	Winston.plot(rocPlot);
