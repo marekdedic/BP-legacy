@@ -21,8 +21,8 @@ end
 
 function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
-	rocPlot = roc(predicted[real .== 2], predicted[real .!= 2])
-	plot(rocPlot);
+	rocPlot = roc(out[dataset.y .== 2], out[dataset.y .!= 2])
+	Winston.plot(rocPlot);
 end
 
 function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
@@ -34,8 +34,7 @@ function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
 	Recall = zeros(sum(nmask));
 	for (i, it) in enumerate(thresholds)
 		Recall[i] = mean(out[pmask] .> it);
-		ppmask = out .> it;
-		Precision[i] = mean(dataset.y[ppmask] .== 2)
+		Precision[i] = mean(dataset.y[out .> it] .== 2)
 	end
 	plot(Recall, Precision; xlabel = "Recall", ylabel = "Precision");
 end

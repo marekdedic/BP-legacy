@@ -10,7 +10,7 @@ function trainModel!(model::SingleBagModel, dataset::SingleBagDataset; T::DataTy
   function optFun(x::Vector)
     update!(model,x);
     dss=sample(dataset,[1000,1000]);
-    f=gradient!(model,dss,g);
+    f=EduNets.gradient!(model,dss,g);
     f+=l1regularize!(model,g, T(lambda));
     model2vector!(g,gg);
     return(f,gg);
