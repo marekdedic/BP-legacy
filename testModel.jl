@@ -5,19 +5,6 @@ using ROCAnalysis
 using MLPlots
 import Winston
 
-function separate(predicted::StridedArray{Float32}, real::Array{Int64})::Tuple{Array{Float32}, Array{Float32}}
-	target = Array{Float64, 1}(0);
-	nontarget = Array{Float64, 1}(0);
-	for i in 1:length(real)
-		if(real[i] == 2)
-			push!(target, predicted[i]);
-		else
-			push!(nontarget, predicted[i]);
-		end
-	end
-	return (target, nontarget);
-end			
-
 function testModelROCCustom(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
 	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2
@@ -34,9 +21,8 @@ end
 
 function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
-	(target, nontarget) = separate(out, dataset.y);
-	rocPlot = roc(target, nontarget)
-	Winston.plot(rocPlot);
+	rocPlot = roc(predicted[real .== 2], predicted[real .!= 2])
+	plot(rocPlot);
 end
 
 function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
