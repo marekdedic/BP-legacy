@@ -23,7 +23,7 @@ end
 
 trigrams(input::AbstractString) = ngrams(input, 3);
 
-function features(input::AbstractString, modulo::Int64=2053)::SparseVector{Float32}
+function trigramFeatureGenerator(input::AbstractString, modulo::Int64)::Array{Float32}
 	output = spzeros(Float32, modulo);
 	for i in trigrams(input)
 		index = mod(hash(i), modulo);
@@ -49,7 +49,7 @@ function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
 	return output;
 end
 
-function loadResultFromJSON(file::AbstractString)::Int64
+function countingResultParser(file::AbstractString)::Int64
 	positiveCount= 0;
 	open(file) do f
 		json = JSON.parse(f);
@@ -100,12 +100,12 @@ function loadResultFromJSON(file::AbstractString)::Int64
 	return positiveCount >= 5 ? 2 : 1;
 end
 
-function loadThreatGrid(dir::AbstractString)::SingleBagDataset
-	featureMatrix = [Array{Float32, 2}(2053, 0) for i in 1:Threads.nthreads()];
+function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::SingleBagDataset
+	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
 	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
 	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
 	maxBag = [1 for i in 1:Threads.nthreads()];
-	aggregatedFeatures = Array{Float32, 2}(2053, 0);
+	aggregatedFeatures = Array{Float32, 2}(featureCount, 0);
 	aggregatedResults = Array{Int64}(0);
 	aggregatedBags = Array{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
@@ -114,9 +114,9 @@ function loadThreatGrid(dir::AbstractString)::SingleBagDataset
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
-				result = loadResultFromJSON(filename * ".vt.json");
+				result = resultParser(filename * ".vt.json");
 				for url in urls
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], features(url));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(url, featureCount));
 					push!(results[Threads.threadid()], result);
 					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 				end
