@@ -100,6 +100,12 @@ function countingResultParser(file::AbstractString)::Int64
 	return positiveCount >= 5 ? 2 : 1;
 end
 
+function AVClassResultParser(file::AbstractString)::Int64
+	result = readstring(pipeline(`../avclass/avclass_labeler.py -vt $file`, `cat`));
+	print("res: ");
+	return 1;
+end
+
 function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::SingleBagDataset
 	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
 	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
@@ -135,6 +141,11 @@ end
 
 function parseDataset(dir::AbstractString, file::AbstractString="dataset.jld")::Void
 	JLD.save(file, "dataset", loadThreatGrid(dir));
+	return nothing;
+end
+
+function parseDatasetAVClass(dir::AbstractString, file::AbstractString="dataset.jld")::Void
+	JLD.save(file, "dataset", loadThreatGrid(dir, resultParser = AVClassResultParser));
 	return nothing;
 end
 
