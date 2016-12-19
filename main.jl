@@ -7,6 +7,6 @@ trainModel!(model, dataset);
 
 testDataset = loadDataset("testDataset.jld");
 
-#testModelROCCustom(model, dataset);
-#testModelROC(model, dataset);
+#testModelROCCustom(model, testDataset);
+#testModelPR(model, testDataset);
 
