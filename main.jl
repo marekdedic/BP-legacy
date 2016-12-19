@@ -2,10 +2,8 @@ push!(LOAD_PATH, "EduNets/src");
 
 include("include.jl");
 
-(model, dataset) = initializeModel();
-trainModel!(model, dataset);
-
-testDataset = loadDataset("testDataset.jld");
+(model, trainDataset, testDataset) = initializeModel();
+trainModel!(model, trainDataset);
 
 #testModelROCCustom(model, testDataset);
 #testModelPR(model, testDataset);
