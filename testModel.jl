@@ -28,14 +28,14 @@ end
 
 function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
-	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2
+	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2 i. e. for real positives
 	nmask = dataset.y .== 1;
 	thresholds = sort(out[nmask], rev = true);
-	Precision = zeros(sum(nmask)); # Zero array with length equal to number of real negatives
-	Recall = zeros(sum(nmask));
+	precision = zeros(sum(nmask)); # Zero array with length equal to number of real negatives
+	recall = zeros(sum(nmask));
 	for (i, it) in enumerate(thresholds)
-		Recall[i] = mean(out[pmask] .> it);
-		Precision[i] = mean(dataset.y[out .> it] .== 2)
+		precision[i] = mean(dataset.y[out .> it] .== 2)
+		recall[i] = mean(out[pmask] .> it);
 	end
-	plot(Recall, Precision; xlabel = "Recall", ylabel = "Precision", xlims = (0, 1), ylims = (0, 1), label = "PR Curve");
+	plot(recall, precision; xlabel = "Recall", ylabel = "Precision", xlims = (0, 1), ylims = (0, 1), label = "PR Curve");
 end
