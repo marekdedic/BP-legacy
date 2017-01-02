@@ -26,7 +26,20 @@ type UrlModel{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractM
 	state::UrlModelState{T};
 end;
 
-function UrlModel(perUrlPart::AbstractModel, perUrlPartPooling::AbstractModel, perUrl::AbstractModel, perUrlPooling::AbstractModel, all::AbstractModel, loss::AbstractLoss; T::DataType = Float64)
+function UrlModel(perUrlPart::AbstractModel, perUrlPartPooling::AbstractModel, perUrl::AbstractModel, perUrlPooling::AbstractModel, all::AbstractModel, loss::AbstractLoss; T::DataType = Float64)::UrlModel
 	return UrlModel(eprUrlPart, perUrlPartPooling, perUrl, perUrlPooling, all, loss, UrlModelState(T = T));
+end
+
+@inline function model2vector(model::UrlModel)::Vector
+	vcat(model2vector(model.perUrlPart), model2vector(model.perUrlPartPooling), model2vector(perUrl), model2vector(perUrlPooling), model2vector(all))
+end
+
+@inline function update!(model::UrlModel, theta::AbstractArray; offset::Int = 1)::Int
+	offset=update!(model.perUrlPart, theta; offset = offset)
+	offset=update!(model.perUrlPartPooling, theta; offset = offset)
+	offset=update!(model.perUrl, theta; offset = offset)
+	offset=update!(model.perUrlPooling, theta; offset = offset)
+	offset=update!(model.all, theta; offset = offset)
+	return(offset)
 end
 
