@@ -39,3 +39,4 @@ function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
 	end
 	plot(recall, precision; xlabel = "Recall", ylabel = "Precision", xlims = (0, 1), ylims = (0, 1), label = "PR Curve");
 end
+
