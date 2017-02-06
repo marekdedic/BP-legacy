@@ -2,7 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 import GZip
 import JSON
-using  EduNets
+using EduNets
 
 type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 	"Features extracted from domain part of url"
@@ -21,7 +21,7 @@ type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 end;
 
 	"Labeling of URL parts: 1 - domain; 2 - path; 3 - query"
-function UrlDataset(features::Matrix, labels::Vector, bagIDs, urlParts::Vector{Int})::UrlDataset
+function UrlDataset(features::Matrix, labels::Vector{Int}, bagIDs, urlParts::Vector{Int}; T::DataType = Float64)::UrlDataset
 	bagMap = Dict{eltype(bagIDs), Vector{Int}}();
 	for i in 1:length(bagIDs)
 		if(!haskey(bagMap, bagIDs[i]))
@@ -36,9 +36,9 @@ function UrlDataset(features::Matrix, labels::Vector, bagIDs, urlParts::Vector{I
 		bags[i] = it[2];
 		bagLabels[i] = maximum(labels[it[2]]);
 	end
-	domainFeatures = Matrix{AbstractFloat}(size(features)[1], 0);
-	pathFeatures = Matrix{AbstractFloat}(size(features)[1], 0);
-	queryFeatures = Matrix{AbstractFloat}(size(features)[1], 0);
+	domainFeatures = Matrix{T}(size(features)[1], 0);
+	pathFeatures = Matrix{T}(size(features)[1], 0);
+	queryFeatures = Matrix{T}(size(features)[1], 0);
 	for i in 1:length(urlParts)
 		if(urlParts[i] == 1)
 			domainFeatures = hcat(domainFeatures, features[:,i]);

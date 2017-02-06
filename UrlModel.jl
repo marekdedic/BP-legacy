@@ -16,7 +16,7 @@ function UrlModelState(;T::DataType = Float64)
 end
 
 type UrlModel{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractModel, E<:AbstractModel, F<:AbstractLoss, T<:AbstractFloat}<:AbstractModel
-	perUrlPart::A; # Why one model, why not copies of a smaller model?
+	perUrlPart::A;
 	perUrlPartPooling::B;
 	perUrl::C;
 	perUrlPooling::D;
