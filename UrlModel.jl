@@ -12,7 +12,7 @@ end;
 
 function UrlModelState(;T::DataType = Float64)
 	zm = zeros(T, 0, 0);
-	return UrlModelState(zm, zm, zm);
+	return UrlModelState(zm, zm, zm, zm, zm);
 end
 
 type UrlModel{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractModel, E<:AbstractModel, F<:AbstractLoss, T<:AbstractFloat}<:AbstractModel
@@ -27,7 +27,7 @@ type UrlModel{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractM
 end;
 
 function UrlModel(perUrlPart::AbstractModel, perUrlPartPooling::AbstractModel, perUrl::AbstractModel, perUrlPooling::AbstractModel, all::AbstractModel, loss::AbstractLoss; T::DataType = Float64)::UrlModel
-	return UrlModel(eprUrlPart, perUrlPartPooling, perUrl, perUrlPooling, all, loss, UrlModelState(T = T));
+	return UrlModel(perUrlPart, perUrlPartPooling, perUrl, perUrlPooling, all, loss, UrlModelState(T = T));
 end
 
 @inline function model2vector(model::UrlModel)::Vector
