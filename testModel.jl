@@ -1,9 +1,7 @@
 push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
-using ROCAnalysis
 using MLPlots
-import Winston
 
 function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
@@ -18,12 +16,6 @@ function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	end
 	plot(FPR, TPR; xlabel = "False-positive rate", ylabel = "True-positive rate", xlims = (0, 1), ylims = (0, 1), label = "ROC Curve");
 	plot!(identity; linestyle = :dot, label="");
-end
-
-function testModelROCAnalysis(model::SingleBagModel, dataset::SingleBagDataset)
-	out = forward!(model, dataset);
-	rocPlot = roc(out[dataset.y .== 2], out[dataset.y .!= 2])
-	Winston.plot(rocPlot);
 end
 
 function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
