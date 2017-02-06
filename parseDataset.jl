@@ -102,9 +102,20 @@ function countingResultParser(file::AbstractString)::Int64
 	return positiveCount >= 5 ? 2 : 1;
 end
 
+function setupAVClass(file::AbstractString)
+	global avclass_dict = Dict{String, String}();
+	open(file) do file
+		for line in eachline(file)
+			values = split(chomp(line), '\t');
+			if size(values)[1] > 2
+				avclass_dict[values[1]] = values[3];
+			end
+		end
+	end
+end
+
 function AVClassResultParser(file::AbstractString)::Int64
-	result = readstring(pipeline(`./avclass_labeler.py -vt $file`, `cat`));
-	result = split(chomp(result), '\t')[end];
+	result = avclass_dict[file];
 	return (result == "CLEAN" || result == "") ? 1 : 2;
 end
 
@@ -193,17 +204,15 @@ function parseDataset(dir::AbstractString, file::AbstractString = "dataset.jld")
 end
 
 function parseDatasetAVClass(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
-	cd("../avclass");
+	setupAVClass("avclass_results.txt");
 	dataset = loadThreatGrid(dir, resultParser = AVClassResultParser);
-	cd("../BP");
 	JLD.save(file, "dataset", dataset);
 	return nothing;
 end
 
 function parseDatasetAVClassUrl(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
-	cd("../avclass");
+	setupAVClass("avclass_results.txt");
 	dataset = loadThreatGridUrl(dir, resultParser = AVClassResultParser);
-	cd("../BP");
 	JLD.save(file, "dataset", dataset);
 	return nothing;
 end
