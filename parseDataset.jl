@@ -5,6 +5,8 @@ import JSON
 import JLD
 using EduNets
 
+include("UrlDataset.jl")
+
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
 	i = 1;
@@ -139,14 +141,68 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-function parseDataset(dir::AbstractString, file::AbstractString="dataset.jld")::Void
+function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::UrlDataset
+	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
+	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
+	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
+	urlParts = [Array{Int}(0) for i in 1:Threads.nthreads()];
+	maxBag = [1 for i in 1:Threads.nthreads()];
+	aggregatedFeatures = Array{Float32, 2}(featureCount, 0);
+	aggregatedResults = Array{Int64}(0);
+	aggregatedBags = Array{Int}(0);
+	aggregatedUrlParts = Array{Int}(0);
+	for (root, dirs, files) in walkdir(dir)
+		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
+			path = joinpath(root, file);
+			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
+			if isfile(filename * ".vt.json")
+				urls = loadUrlFromJSON(filename * ".joy.json.gz");
+				result = resultParser(filename * ".vt.json");
+				for url in urls
+					(domain, path, query) = separateUrl(url);
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(domain, featureCount));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(path, featureCount));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(query, featureCount));
+					push!(results[Threads.threadid()], result);
+					push!(results[Threads.threadid()], result);
+					push!(results[Threads.threadid()], result);
+					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
+					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
+					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
+					push!(urlParts[Threads.threadid()], 1);
+					push!(urlParts[Threads.threadid()], 2);
+					push!(urlParts[Threads.threadid()], 3);
+				end
+			end
+			maxBag[Threads.threadid()] += 1;
+		end
+	end
+	for i in 1:Threads.nthreads()
+		aggregatedFeatures = hcat(aggregatedFeatures, featureMatrix[i]);
+		aggregatedResults = vcat(aggregatedResults, results[i]);
+		bags[i] += size(aggregatedBags)[1];
+		aggregatedBags = vcat(aggregatedBags, bags[i]);
+		aggregatedUrlParts = vcat(aggregatedUrlParts, urlParts[i]);
+	end
+	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
+end
+
+function parseDataset(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
 	JLD.save(file, "dataset", loadThreatGrid(dir));
 	return nothing;
 end
 
-function parseDatasetAVClass(dir::AbstractString, file::AbstractString="dataset.jld")::Void
+function parseDatasetAVClass(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
 	cd("../avclass");
 	dataset = loadThreatGrid(dir, resultParser = AVClassResultParser);
+	cd("../BP");
+	JLD.save(file, "dataset", dataset);
+	return nothing;
+end
+
+function parseDatasetAVClassUrl(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
+	cd("../avclass");
+	dataset = loadThreatGridUrl(dir, resultParser = AVClassResultParser);
 	cd("../BP");
 	JLD.save(file, "dataset", dataset);
 	return nothing;

@@ -5,27 +5,29 @@ import JSON
 using  EduNets
 
 type UrlDataset{T<:AbstractFloat}<:AbstractDataset
-	"The feature matrix"
-	features::AbstractMatrix{T};
+	"Features extracted from domain part of url"
+	domainFeatures::AbstractMatrix{T};
+	"Features extracted from path part of url"
+	pathFeatures::AbstractMatrix{T};
+	"Features extracted from query part of url"
+	queryFeatures::AbstractMatrix{T};
 	"Label vector whose size is the number of bags - each element of y corresponds to an element of bags"
 	labels::AbstractVector{T};
 
 	"Each element of bags is one bag. Its elements are indices of lines from features, which are in this bag."
 	bags::Vector{Vector{Int}};
-	"Labeling of URL parts: 1 - domain; 2 - path; 3 - query"
-	urlParts::Vector{Int};
-	#bags::Vector{Vector{Tuple{Int, Vector{Int}}}}; # unified alternative
 
-	#info::DataFrames.DataFrame; # no idea what this is for
+	#info::DataFrames.DataFrame; # Additional metadata, not used
 end;
 
+	"Labeling of URL parts: 1 - domain; 2 - path; 3 - query"
 function UrlDataset(features::Matrix, labels::Vector, bagIDs, urlParts::Vector{Int})::UrlDataset
-	bagMap = Dict{eltype(bagIDs), Int}();
+	bagMap = Dict{eltype(bagIDs), Vector{Int}}();
 	for i in 1:length(bagIDs)
 		if(!haskey(bagMap, bagIDs[i]))
 			bagMap[bagIDs[i]] = [i];
 		else
-			push!(bagMap[BagIDs[i]], i)
+			push!(bagMap[bagIDs[i]], i)
 		end
 	end
 	bags = Vector{Vector{Int}}(length(bagMap));
@@ -34,46 +36,41 @@ function UrlDataset(features::Matrix, labels::Vector, bagIDs, urlParts::Vector{I
 		bags[i] = bagMap[i][2];
 		bagLabels[i] = maximum(labels[bagMap[i][2]]);
 	end
-	return UrlDataset(features, bagLabels, bags, urlParts);
+	domainFeatures = Matrix();
+	pathFeatures = Matrix();
+	queryFeatures = Matrix();
+	for i in 1:length(urlParts)
+		if(urlParts(i) == 1)
+			domainFeatures = hcat(domainFeatures, features[i]);
+		elseif(urlParts(i) == 2)
+			pathFeatures = hcat(domainFeatures, features[i]);
+		elseif(urlParts(i) == 3)
+			queryFeatures = hcat(domainFeatures, features[i]);
+		end
+	end
+	return UrlDataset(domainFeatures, pathFeatures, queryFeatures, bagLabels, bags);
 end
 
-
-# LEGACY CODE:
-
-type Url
-	protocol::AbstractString
-	domain::AbstractArray{AbstractString, 1};
-	port::Int64;
-	path::AbstractArray{AbstractString, 1};
-	query::AbstractArray{Tuple{AbstractString, AbstractString}, 1};
-end;
-Url() = Url("", [], 80, [], []);
-
-function readURL(input::AbstractString)::Url
-  output::Url = Url();
-  splitted = split(input, "://");
-  output.protocol = splitted[1];
-  if in(':', splitted[2])
-	  splitted = split(splitted[2], ":");
-	  domain = splitted[1];
-	  splitted = split(splitted[2], "/");
-	  output.port = parse(Int64, splitted[1]);
-	  splice!(splitted, 1);
-  end
-  query = split(splitted[end], "?");
-  splitted[end] = query[1];
-  query = query[2];
-  for s in split(domain, ".")
-	  push!(output.domain, s);
-  end
-  for s in splitted
-	  push!(output.path, s);
-  end
-  for s in split(query, "&")
-	  keyvalue = split(s, "=");
-	  push!(output.query, (keyvalue[1], keyvalue[2]));
-  end
-  println(output);
-  return output;
+function separateUrl(url::AbstractString)::Tuple{String, String, String}
+	protocol = "http";
+	if contains(url, "://")
+		splitted = split(url, "://");
+		protocol = splitted[1];
+		url = splitted[2];
+	end
+	splitted = split(url, "/");
+	domain = splitted[1];
+	splitted = splitted[2:end];
+	path = "";
+	query = "";
+	if length(splitted) != 0
+		splitted2 = split(splitted[end], "?")
+		splitted[end] = splitted2[1];
+		if length(splitted2) > 1
+			query = splitted2[2]
+		end
+		path = join(splitted, "/")
+	end
+	return (protocol * "://" * domain, path, query);
 end
 
