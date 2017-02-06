@@ -12,7 +12,7 @@ type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 	"Features extracted from query part of url"
 	queryFeatures::AbstractMatrix{T};
 	"Label vector whose size is the number of bags - each element of y corresponds to an element of bags"
-	labels::AbstractVector{T};
+	labels::AbstractVector{Int};
 
 	"Each element of bags is one bag. Its elements are indices of lines from features, which are in this bag."
 	bags::Vector{Vector{Int}};
@@ -32,20 +32,20 @@ function UrlDataset(features::Matrix, labels::Vector, bagIDs, urlParts::Vector{I
 	end
 	bags = Vector{Vector{Int}}(length(bagMap));
 	bagLabels = Vector{Int}(length(bagMap))
-	for i in 1:length(bagMap)
-		bags[i] = bagMap[i][2];
-		bagLabels[i] = maximum(labels[bagMap[i][2]]);
+	for (i, it) in enumerate(bagMap)
+		bags[i] = it[2];
+		bagLabels[i] = maximum(labels[it[2]]);
 	end
-	domainFeatures = Matrix();
-	pathFeatures = Matrix();
-	queryFeatures = Matrix();
+	domainFeatures = Matrix{AbstractFloat}(size(features)[1], 0);
+	pathFeatures = Matrix{AbstractFloat}(size(features)[1], 0);
+	queryFeatures = Matrix{AbstractFloat}(size(features)[1], 0);
 	for i in 1:length(urlParts)
-		if(urlParts(i) == 1)
-			domainFeatures = hcat(domainFeatures, features[i]);
-		elseif(urlParts(i) == 2)
-			pathFeatures = hcat(domainFeatures, features[i]);
-		elseif(urlParts(i) == 3)
-			queryFeatures = hcat(domainFeatures, features[i]);
+		if(urlParts[i] == 1)
+			domainFeatures = hcat(domainFeatures, features[:,i]);
+		elseif(urlParts[i] == 2)
+			pathFeatures = hcat(pathFeatures, features[:,i]);
+		elseif(urlParts[i] == 3)
+			queryFeatures = hcat(queryFeatures, features[:,i]);
 		end
 	end
 	return UrlDataset(domainFeatures, pathFeatures, queryFeatures, bagLabels, bags);
