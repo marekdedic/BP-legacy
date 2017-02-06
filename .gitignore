@@ -6,4 +6,5 @@ deps/deps.jl
 *.swp
 
 EduNets/
+avclass_results.txt
 
