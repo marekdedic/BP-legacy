@@ -1,7 +1,7 @@
 push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
-using MLPlots
+using Plots
 
 function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	out = forward!(model, dataset);
