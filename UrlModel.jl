@@ -2,6 +2,8 @@ push!(LOAD_PATH, "EduNets/src")
 
 using EduNets
 
+include("UrlDataset.jl");
+
 type UrlModelState{T<:AbstractFloat}
 	O1::StridedMatrix{T};
 	O2::StridedMatrix{T};
@@ -16,18 +18,20 @@ function UrlModelState(;T::DataType = Float64)
 end
 
 type UrlModel{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractModel, E<:AbstractModel, F<:AbstractLoss, T<:AbstractFloat}<:AbstractModel
-	perUrlPart::A;
-	perUrlPartPooling::B;
-	perUrl::C;
-	perUrlPooling::D;
-	all::E;
+	domainModel::A
+	pathModel::A
+	queryModel::A
+	urlPartPooling::B;
+	urlModel::C;
+	urlPooling::D;
+	globalModel::E;
 	loss::F;
 
 	state::UrlModelState{T};
 end;
 
-function UrlModel(perUrlPart::AbstractModel, perUrlPartPooling::AbstractModel, perUrl::AbstractModel, perUrlPooling::AbstractModel, all::AbstractModel, loss::AbstractLoss; T::DataType = Float64)::UrlModel
-	return UrlModel(perUrlPart, perUrlPartPooling, perUrl, perUrlPooling, all, loss, UrlModelState(T = T));
+function UrlModel(urlPartModel::AbstractModel, urlPartPooling::AbstractModel, urlModel::AbstractModel, urlPooling::AbstractModel, globalModel::AbstractModel, loss::AbstractLoss; T::DataType = Float64)::UrlModel
+	return UrlModel(urlPartModel, deepcopy(urlPartModel), deepcopy(urlPartModel), urlPartPooling, urlModel, urlPooling, globalModel, loss, UrlModelState(T = T));
 end
 
 @inline function model2vector(model::UrlModel)::Vector

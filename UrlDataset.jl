@@ -4,6 +4,8 @@ import GZip
 import JSON
 using EduNets
 
+import Base.Operators.getindex
+
 type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 	"Features extracted from domain part of url"
 	domainFeatures::AbstractMatrix{T};
@@ -49,6 +51,9 @@ function UrlDataset(features::Matrix, labels::Vector{Int}, bagIDs, urlParts::Vec
 		end
 	end
 	return UrlDataset(domainFeatures, pathFeatures, queryFeatures, bagLabels, bags);
+end
+
+function getindex(dataset::UrlDataset, indices::AbstractArray{Int})
 end
 
 function separateUrl(url::AbstractString)::Tuple{String, String, String}
