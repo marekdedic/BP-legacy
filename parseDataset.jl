@@ -5,8 +5,6 @@ import JSON
 import JLD
 using EduNets
 
-include("UrlDatasetCompound.jl")
-
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
 	i = 1;

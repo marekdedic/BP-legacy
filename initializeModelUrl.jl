@@ -7,7 +7,7 @@ function loadDataset(file::AbstractString)
 	return JLD.load(file, "dataset");
 end
 
-function initializeModel(;file::AbstractString="dataset.jld", percentage::Float32 = 0.9f0);
+function initializeModelUrl(;file::AbstractString="dataset.jld", percentage::Float32 = 0.9f0);
 	insideLayers = 100;
 	dataset = loadDataset(file);
 	indices = randperm(length(dataset.labels));

@@ -1,5 +1,7 @@
 push!(LOAD_PATH, "EduNets/src");
 
+using EduNets;
+
 import Base.Operators.getindex
 
 type UrlDatasetCompound{T<:AbstractFloat}<:AbstractDataset
