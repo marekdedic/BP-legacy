@@ -5,7 +5,7 @@ import JSON
 import JLD
 using EduNets
 
-include("UrlDataset.jl")
+include("UrlDatasetCompound.jl")
 
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
@@ -152,7 +152,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::UrlDataset
+function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::UrlDatasetCompound
 	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
 	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
 	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
@@ -195,7 +195,7 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
 		aggregatedUrlParts = vcat(aggregatedUrlParts, urlParts[i]);
 	end
-	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
+	return UrlDatasetCompound(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
 end
 
 function parseDataset(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
