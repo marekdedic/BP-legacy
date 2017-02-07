@@ -1,5 +1,7 @@
 push!(LOAD_PATH, "EduNets/src");
 
+import Base.Operators.getindex
+
 type UrlDatasetCompound{T<:AbstractFloat}<:AbstractDataset
 	domains::SortedSingleBagDataset{T}
 	paths::SortedSingleBagDataset{T}
@@ -47,3 +49,12 @@ function UrlDatasetCompound(features::Matrix, labels::Vector{Int}, urlIDs::Vecto
 	queries = SortedSingleBagDataset(domainFeatures, bagLabels, bags);
 	UrlDatasetCompound(domains, paths, queries, bagLabels)
 end
+
+function getindex(dataset::UrlDatasetCompound, i::Int)
+	getindex(dataset, [i])
+end
+
+function getIndex(dataset::UrlDatasetCompound, indices::AbstractArray{Int})
+	UrlDatasetCompound(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.labels[indices])
+end
+
