@@ -56,26 +56,4 @@ end
 function getindex(dataset::UrlDataset, indices::AbstractArray{Int})
 end
 
-function separateUrl(url::AbstractString)::Tuple{String, String, String}
-	protocol = "http";
-	if contains(url, "://")
-		splitted = split(url, "://");
-		protocol = splitted[1];
-		url = splitted[2];
-	end
-	splitted = split(url, "/");
-	domain = splitted[1];
-	splitted = splitted[2:end];
-	path = "";
-	query = "";
-	if length(splitted) != 0
-		splitted2 = split(splitted[end], "?")
-		splitted[end] = splitted2[1];
-		if length(splitted2) > 1
-			query = splitted2[2]
-		end
-		path = join(splitted, "/")
-	end
-	return (protocol * "://" * domain, path, query);
-end
 

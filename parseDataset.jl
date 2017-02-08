@@ -5,6 +5,11 @@ import JSON
 import JLD
 using EduNets
 
+include("UrlDatasetCompound.jl");
+
+# Helper functions
+
+"Generates an array of all the n-grams (substrings of length n) from a given string."
 function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	output = Array{AbstractString}(0);
 	i = 1;
@@ -21,17 +26,33 @@ function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	return output;
 end
 
-trigrams(input::AbstractString) = ngrams(input, 3);
+trigrams(input::AbstractStringa)::Array{AbstractString} = ngrams(input, 3);
 
-function trigramFeatureGenerator(input::AbstractString, modulo::Int64)::Array{Float32}
-	output = spzeros(Float32, modulo);
-	for i in trigrams(input)
-		index = mod(hash(i), modulo);
-		output[index + 1] += 1;
+"Separates a given URL into 3 parts - domain, query, and path."
+function separateUrl(url::AbstractString)::Tuple{String, String, String}
+	protocol = "http";
+	if contains(url, "://")
+		splitted = split(url, "://");
+		protocol = splitted[1];
+		url = splitted[2];
 	end
-	return output;
+	splitted = split(url, "/");
+	domain = splitted[1];
+	splitted = splitted[2:end];
+	path = "";
+	query = "";
+	if length(splitted) != 0
+		splitted2 = split(splitted[end], "?")
+		splitted[end] = splitted2[1];
+		if length(splitted2) > 1
+			query = splitted2[2]
+		end
+		path = join(splitted, "/")
+	end
+	return (protocol * "://" * domain, path, query);
 end
 
+"Loads all URLs from a given JSON (.joy.json.gz) file."
 function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
 	output = Array{AbstractString}(0);
 	GZip.open(file) do g
@@ -49,6 +70,32 @@ function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
 	return output;
 end
 
+"Sets up a global dictionary for AVClassResultParser, so that it doesn't have to be loaded every time."
+function setupAVClass(file::AbstractString)
+	global avclass_dict = Dict{String, String}();
+	open(file) do file
+		for line in eachline(file)
+			values = split(chomp(line), '\t');
+			if size(values)[1] > 2
+				avclass_dict[values[1]] = values[3];
+			end
+		end
+	end
+end
+
+# Feature generation functions
+
+function trigramFeatureGenerator(input::AbstractString, modulo::Int64)::Array{Float32}
+	output = spzeros(Float32, modulo);
+	for i in trigrams(input)
+		index = mod(hash(i), modulo);
+		output[index + 1] += 1;
+	end
+	return output;
+end
+
+# Labeling functions
+
 function countingResultParser(file::AbstractString)::Int64
 	positiveCount= 0;
 	open(file) do f
@@ -64,7 +111,7 @@ function countingResultParser(file::AbstractString)::Int64
 				if(scans["BitDefender"]["detected"] == true)
 					positiveCount += 1;
 				end
-			end
+			end  
 			try
 				if(scans["Symantec"]["detected"] == true)
 					positiveCount += 1;
@@ -100,22 +147,12 @@ function countingResultParser(file::AbstractString)::Int64
 	return positiveCount >= 5 ? 2 : 1;
 end
 
-function setupAVClass(file::AbstractString)
-	global avclass_dict = Dict{String, String}();
-	open(file) do file
-		for line in eachline(file)
-			values = split(chomp(line), '\t');
-			if size(values)[1] > 2
-				avclass_dict[values[1]] = values[3];
-			end
-		end
-	end
-end
-
 function AVClassResultParser(file::AbstractString)::Int64
 	result = get(avclass_dict, file, "");
 	return (result == "CLEAN" || result == "") ? 1 : 2;
 end
+
+# ThreatgridSample loading functions
 
 function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::SingleBagDataset
 	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
@@ -127,7 +164,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	aggregatedBags = Array{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
 		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
-			path = joinpath(root, file);
+		path = joinpath(root, file);
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
@@ -195,6 +232,8 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 	end
 	return UrlDatasetCompound(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
 end
+
+# Actual realisations of a complete dataset parser.
 
 function parseDataset(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
 	JLD.save(file, "dataset", loadThreatGrid(dir));
