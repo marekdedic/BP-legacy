@@ -26,7 +26,7 @@ function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
 	return output;
 end
 
-trigrams(input::AbstractStringa)::Array{AbstractString} = ngrams(input, 3);
+trigrams(input::AbstractString)::Array{AbstractString} = ngrams(input, 3);
 
 "Separates a given URL into 3 parts - domain, query, and path."
 function separateUrl(url::AbstractString)::Tuple{String, String, String}
