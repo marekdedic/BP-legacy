@@ -18,9 +18,9 @@ function UrlModelState(;T::DataType = Float64)
 end
 
 type UrlModel{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractModel, E<:AbstractModel, F<:AbstractLoss, T<:AbstractFloat}<:AbstractModel
-	domainModel::A
-	pathModel::A
-	queryModel::A
+	domainModel::A;
+	pathModel::A;
+	queryModel::A;
 	urlPartPooling::B;
 	urlModel::C;
 	urlPooling::D;
