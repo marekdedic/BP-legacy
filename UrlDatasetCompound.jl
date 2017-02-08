@@ -56,7 +56,7 @@ function getindex(dataset::UrlDatasetCompound, i::Int)
 	getindex(dataset, [i])
 end
 
-function getIndex(dataset::UrlDatasetCompound, indices::AbstractArray{Int})
+function getindex(dataset::UrlDatasetCompound, indices::AbstractArray{Int})
 	UrlDatasetCompound(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.labels[indices])
 end
 

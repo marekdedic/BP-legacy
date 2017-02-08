@@ -1,4 +1,4 @@
-push!(LOAD_PATH, "EduNets/src")
+push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
