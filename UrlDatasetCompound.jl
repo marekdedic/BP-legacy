@@ -16,7 +16,7 @@ end
 
 function UrlDatasetCompound(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; T::DataType = Float64)::UrlDatasetCompound
 	permutation = sortperm(urlIDs);
-	fetures = features[:, permutation];
+	features = features[:, permutation];
 	labels = labels[permutation];
 	urlIDs = urlIDs[permutation]
 	urlParts = urlParts[permutation];

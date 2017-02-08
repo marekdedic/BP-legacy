@@ -113,7 +113,7 @@ function setupAVClass(file::AbstractString)
 end
 
 function AVClassResultParser(file::AbstractString)::Int64
-	result = avclass_dict[file];
+	result = get(avclass_dict, file, "");
 	return (result == "CLEAN" || result == "") ? 1 : 2;
 end
 
