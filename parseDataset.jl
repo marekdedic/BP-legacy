@@ -10,11 +10,10 @@ include("UrlDatasetCompound.jl");
 # Helper functions
 
 "Generates an array of all the n-grams (substrings of length n) from a given string."
-function ngrams(input::AbstractString, n::Int64)::Array{AbstractString}
-	output = Array{AbstractString}(0);
+function ngrams(input::AbstractString, n::Int)::Vector{AbstractString}
+	output = Vector{AbstractString}(length(input) - n + 1);
 	i = 1;
 	for c in input
-		push!(output, AbstractString(""));
 		output[i] = string(output[i], c);
 		for j in 1:(n - 1)
 			if i > j
@@ -53,8 +52,8 @@ function separateUrl(url::AbstractString)::Tuple{String, String, String}
 end
 
 "Loads all URLs from a given JSON (.joy.json.gz) file."
-function loadUrlFromJSON(file::AbstractString)::Array{AbstractString}
-	output = Array{AbstractString}(0);
+function loadUrlFromJSON(file::AbstractString)::Vector{AbstractString}
+	output = Vector{AbstractString}(0);
 	GZip.open(file) do g
 		for line in eachline(g)
 			json = JSON.parse(line);
@@ -85,8 +84,8 @@ end
 
 # Feature generation functions
 
-function trigramFeatureGenerator(input::AbstractString, modulo::Int64)::Array{Float32}
-	output = spzeros(Float32, modulo);
+function trigramFeatureGenerator(input::AbstractString, modulo::Int; T::DataType = Float32)::Matrix{Float32}
+	output = spzeros(T, modulo);
 	for i in trigrams(input)
 		index = mod(hash(i), modulo);
 		output[index + 1] += 1;
@@ -96,8 +95,8 @@ end
 
 # Labeling functions
 
-function countingResultParser(file::AbstractString)::Int64
-	positiveCount= 0;
+function countingResultParser(file::AbstractString; threshold::Int = 5)::Int
+	positiveCount = 0;
 	open(file) do f
 		json = JSON.parse(f);
 		try
@@ -144,24 +143,24 @@ function countingResultParser(file::AbstractString)::Int64
 			end
 		end
 	end
-	return positiveCount >= 5 ? 2 : 1;
+	return positiveCount >= threshold ? 2 : 1;
 end
 
-function AVClassResultParser(file::AbstractString)::Int64
+function AVClassResultParser(file::AbstractString)::Int
 	result = get(avclass_dict, file, "");
 	return (result == "CLEAN" || result == "") ? 1 : 2;
 end
 
 # ThreatgridSample loading functions
 
-function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::SingleBagDataset
-	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
-	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
-	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
+function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser; T::DataType = Float32)::SingleBagDataset
+	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
+	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
+	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	maxBag = [1 for i in 1:Threads.nthreads()];
-	aggregatedFeatures = Array{Float32, 2}(featureCount, 0);
-	aggregatedResults = Array{Int64}(0);
-	aggregatedBags = Array{Int}(0);
+	aggregatedFeatures = Matrix{T}(featureCount, 0);
+	aggregatedResults = Vector{Int}(0);
+	aggregatedBags = Vector{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
 		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 		path = joinpath(root, file);
@@ -170,7 +169,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
 				result = resultParser(filename * ".vt.json");
 				for url in urls
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(url, featureCount));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(url, featureCount; T = T));
 					push!(results[Threads.threadid()], result);
 					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 				end
@@ -187,16 +186,16 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser)::UrlDatasetCompound
-	featureMatrix = [Array{Float32, 2}(featureCount, 0) for i in 1:Threads.nthreads()];
-	results = [Array{Int64}(0) for i in 1:Threads.nthreads()];
-	bags = [Array{Int}(0) for i in 1:Threads.nthreads()];
-	urlParts = [Array{Int}(0) for i in 1:Threads.nthreads()];
+function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser; T::DataType = Float32)::UrlDatasetCompound
+	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
+	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
+	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
+	urlParts = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	maxBag = [1 for i in 1:Threads.nthreads()];
-	aggregatedFeatures = Array{Float32, 2}(featureCount, 0);
-	aggregatedResults = Array{Int64}(0);
-	aggregatedBags = Array{Int}(0);
-	aggregatedUrlParts = Array{Int}(0);
+	aggregatedFeatures = Matrix{T}(featureCount, 0);
+	aggregatedResults = Vector{Int}(0);
+	aggregatedBags = Vector{Int}(0);
+	aggregatedUrlParts = Vector{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
 		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);
@@ -206,9 +205,9 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 				result = resultParser(filename * ".vt.json");
 				for url in urls
 					(domain, path, query) = separateUrl(url);
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(domain, featureCount));
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(path, featureCount));
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(query, featureCount));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(domain, featureCount; T = T));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(path, featureCount; T = T));
+					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(query, featureCount; T = T));
 					push!(results[Threads.threadid()], result);
 					push!(results[Threads.threadid()], result);
 					push!(results[Threads.threadid()], result);
