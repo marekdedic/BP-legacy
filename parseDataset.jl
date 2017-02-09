@@ -153,7 +153,7 @@ end
 
 # ThreatgridSample loading functions
 
-function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser; T::DataType = Float32)::SingleBagDataset
+function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::SingleBagDataset
 	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -186,7 +186,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser; T::DataType = Float32)::UrlDatasetCompound
+function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDatasetCompound
 	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
