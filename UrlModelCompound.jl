@@ -2,15 +2,15 @@ push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
-type UrlModelCompound{A<:AbstractModel, B<:AbstractModel, C<:AbstractModel, D<:AbstractModel, T<:AbstractFloat}<:AbstractModel
+type UrlModelCompound{A<:Tuple, B<:Tuple, C<:Tuple, D<:Tuple}<:AbstractModel
 	domainModel::A;
 	pathModel::B;
 	queryModel::C;
 	model::D;
 end
 
-function UrlModelCompound(A::AbstractModel, B::AbstractModel, C::AbstractModel, D::AbstractModel; T::DataType = Float32)
-	UrlModel
+function UrlModelCompound(domainModel::Tuple, pathModel::Tuple, queryModel::Tuple, model::Tuple; T::DataType = Float32)
+	UrlModelCompound(domainModel, pathModel, queryModel, model)
 end
 
 # update = vector2model

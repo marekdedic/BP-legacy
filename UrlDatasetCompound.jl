@@ -52,6 +52,10 @@ function UrlDatasetCompound(features::Matrix, labels::Vector{Int}, urlIDs::Vecto
 	UrlDatasetCompound(domains, paths, queries, bagLabels)
 end
 
+function featureSize(dataset::UrlDatasetCompound)::Int
+	size(dataset.domains.x, 1)
+end
+
 function getindex(dataset::UrlDatasetCompound, i::Int)
 	getindex(dataset, [i])
 end
