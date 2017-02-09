@@ -216,9 +216,10 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 					push!(urlParts[Threads.threadid()], 1);
 					push!(urlParts[Threads.threadid()], 2);
 					push!(urlParts[Threads.threadid()], 3);
+
+					maxBag[Threads.threadid()] += 1;
 				end
 			end
-			maxBag[Threads.threadid()] += 1;
 		end
 	end
 	for i in 1:Threads.nthreads()
