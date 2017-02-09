@@ -11,16 +11,15 @@ include("UrlDatasetCompound.jl");
 
 "Generates an array of all the n-grams (substrings of length n) from a given string."
 function ngrams(input::AbstractString, n::Int)::Vector{AbstractString}
-	output = Vector{AbstractString}(length(input) - n + 1);
-	i = 1;
-	for c in input
+	output = Vector{AbstractString}(0);
+	for (i, c) in enumerate(input)
+		push!(output, AbstractString(""));
 		output[i] = string(output[i], c);
 		for j in 1:(n - 1)
 			if i > j
 				output[i - j] = string(output[i - j], c);
 			end
 		end
-		i += 1;
 	end
 	return output;
 end
@@ -84,7 +83,7 @@ end
 
 # Feature generation functions
 
-function trigramFeatureGenerator(input::AbstractString, modulo::Int; T::DataType = Float32)::Matrix{Float32}
+function trigramFeatureGenerator(input::AbstractString, modulo::Int; T::DataType = Float32)::Array{Float32}
 	output = spzeros(T, modulo);
 	for i in trigrams(input)
 		index = mod(hash(i), modulo);
