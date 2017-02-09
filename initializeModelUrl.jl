@@ -8,7 +8,7 @@ function loadDataset(file::AbstractString)
 end
 
 function initializeModelUrl(;file::AbstractString="dataset.jld", percentage::Float32 = 0.9f0);
-	insideLayers = 100;
+	insideLayers = 10;
 	dataset = loadDataset(file);
 	indices = randperm(length(dataset.labels));
 	numTrain = Int(round(length(indices) * percentage));

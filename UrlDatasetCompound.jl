@@ -14,7 +14,7 @@ end
 
 # TODO: Handle empty bags
 
-function UrlDatasetCompound(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; T::DataType = Float64)::UrlDatasetCompound
+function UrlDatasetCompound(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; T::DataType = Float32)::UrlDatasetCompound
 	permutation = sortperm(urlIDs);
 	features = features[:, permutation];
 	labels = labels[permutation];
