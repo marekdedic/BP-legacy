@@ -5,6 +5,7 @@ using EduNets
 function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
   #sc=ScalingLayer(dataset.x);
   gg=model2vector(model);
+  g=deepcopy(model)
 
   function optFun(x::Vector)
     update!(model,x);
@@ -28,27 +29,19 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 
 	(f,goo) = gradient!(loss,oo,dss.labels); #calculate the gradient of the loss function 
 
-	g2=deepcopy(model.model);
 
-	go=backprop!(model.model,(o,),goo,g2);
+	go=backprop!(model.model,(o,),goo,g.model);
 
 	god=view(go,1:size(od,1),:);
-	gop=view(go,1:size(od,1),:);
-	goq=view(go,1:size(od,1),:);
+	gop=view(go,size(od, 1)+1:size(od,1) + size(op, 1),:);
+	goq=view(go,size(od,1) + size(op, 1)+1:size(od,1) + size(op, 1) + size(oq, 1),:);
 
-	gd = deepcopy(model.domainModel);
-	gp = deepcopy(model.pathModel);
-	gq = deepcopy(model.queryModel);
 
-	gradient!(model.domainModel,od,(dsd.bags,),god,gd);
-	gradient!(model.pathModel,op,(dsp.bags,),gop,gp);
-	gradient!(model.queryModel,oq,(dsq.bags,),goq,gq);
+	gradient!(model.domainModel,od,(dsd.bags,),god,g.domainModel);
+	gradient!(model.pathModel,op,(dsp.bags,),gop,g.pathModel);
+	gradient!(model.queryModel,oq,(dsq.bags,),goq,g.queryModel);
 
-	ggd = model2vector(gd);
-	ggp = model2vector(gp);
-	ggq = model2vector(gq);
-	gg2 = model2vector(g2);
-	gg = vcat(ggd, ggp, ggq, gg2);
+	model2vector!(g, gg);
 
 	return(f,gg) #return function value and gradient of the error
 
