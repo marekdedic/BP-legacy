@@ -2,7 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
-function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)
+function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
   #sc=ScalingLayer(dataset.x);
   gg=model2vector(model);
 
@@ -19,25 +19,22 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 	op =forward!(model.pathModel, dsp.x, (dsp.bags,));
 	oq = forward!(model.queryModel, dsq.x, (dsq.bags,));
 
-	o = vcat(od[end], op[end], oq[end])   #this is expensive!!!!
+	o = vcat(od[end], op[end], oq[end]);   #this is expensive!!!!
 
-	#o[1:size(od,1),:]=od
-	#o[size(od,1)+1:,:]=od
+	#o[1:size(od,1),:]=od;
+	#o[size(od,1)+1:,:]=od;
 
-	(something, oo)=forward!(model.model,o)
+	(something, oo)=forward!(model.model,o);
 
-	(f,goo) = gradient!(loss,oo,dss.labels) #calculate the gradient of the loss function 
+	(f,goo) = gradient!(loss,oo,dss.labels); #calculate the gradient of the loss function 
 
 	g2=deepcopy(model.model);
 
-	print("g2: ");
-	println(typeof(g2));
-
 	go=backprop!(model.model,(o,),goo,g2);
 
-	god=view(go,1:size(od,1),:)
-	gop=view(go,1:size(od,1),:)
-	goq=view(go,1:size(od,1),:)
+	god=view(go,1:size(od,1),:);
+	gop=view(go,1:size(od,1),:);
+	goq=view(go,1:size(od,1),:);
 
 	gd = deepcopy(model.domainModel);
 	gp = deepcopy(model.pathModel);
@@ -47,8 +44,12 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 	gradient!(model.pathModel,op,(dsp.bags,),gop,gp);
 	gradient!(model.queryModel,oq,(dsq.bags,),goq,gq);
 
+	ggd = model2vector(gd);
+	ggp = model2vector(gp);
+	ggq = model2vector(gq);
+	gg2 = model2vector(g2);
+	gg = vcat(ggd, ggp, ggq, gg2);
 
-	model2vector!(vcat(gd[end], gp[end], gq[end]),gg) #copy gradient of the model to the vector
 	return(f,gg) #return function value and gradient of the error
 
     #f = gradient!(model,dss,g);
@@ -59,4 +60,5 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 
   theta=model2vector(model);
   adam(optFun, theta, AdamOptions(;maxIter=iter));
+  return nothing;
 end
