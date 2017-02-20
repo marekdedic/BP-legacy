@@ -3,10 +3,10 @@ push!(LOAD_PATH, "EduNets/src");
 using EduNets
 using Plots
 
-function testModelROC(model::UrlModelCompound, dataset::UrlDatasetCompound)
+function testModelUrlROC(model::UrlModelCompound, dataset::UrlDatasetCompound)
 	out = forward!(model, dataset);
-	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2
-	nmask = dataset.y .== 1;
+	pmask = dataset.labels .== 2; # Bool array, true when dataset.y == 2
+	nmask = dataset.labels .== 1;
 	thresholds = sort(out[nmask], rev = true);
 	TPR = zeros(sum(nmask)); # Zero array with length equal to number of real negatives
 	FPR = zeros(sum(nmask));
@@ -18,15 +18,15 @@ function testModelROC(model::UrlModelCompound, dataset::UrlDatasetCompound)
 	plot!(identity; linestyle = :dot, label="");
 end
 
-function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
+function testModelUrlPR(model::UrlModelCompound, dataset::UrlDatasetCompound)
 	out = forward!(model, dataset);
-	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2 i. e. for real positives
-	nmask = dataset.y .== 1;
+	pmask = dataset.labels .== 2; # Bool array, true when dataset.y == 2 i. e. for real positives
+	nmask = dataset.labels .== 1;
 	thresholds = sort(out[nmask], rev = true);
 	precision = zeros(sum(nmask)); # Zero array with length equal to number of real negatives
 	recall = zeros(sum(nmask));
 	for (i, it) in enumerate(thresholds)
-		precision[i] = mean(dataset.y[out .> it] .== 2)
+		precision[i] = mean(dataset.labels[out .> it] .== 2)
 		recall[i] = mean(out[pmask] .> it);
 	end
 	plot(recall, precision; xlabel = "Recall", ylabel = "Precision", xlims = (0, 1), ylims = (0, 1), label = "PR Curve");

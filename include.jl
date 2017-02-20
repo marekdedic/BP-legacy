@@ -8,4 +8,5 @@ include("initializeModelUrl.jl");
 include("trainModel.jl");
 include("trainModelUrl.jl");
 include("testModel.jl");
+include("testModelUrl.jl");
 
