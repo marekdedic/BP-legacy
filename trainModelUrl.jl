@@ -16,6 +16,9 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 	dsp = dss.paths;
 	dsq = dss.queries;
 
+	oo = forward!(model, dss);
+
+	#=
 	od = forward!(model.domainModel, dsd.x, (dsd.bags,));
 	op =forward!(model.pathModel, dsp.x, (dsp.bags,));
 	oq = forward!(model.queryModel, dsq.x, (dsq.bags,));
@@ -26,20 +29,24 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 	#o[size(od,1)+1:,:]=od;
 
 	(something, oo)=forward!(model.model,o);
+	=#
 
 	(f,goo) = gradient!(loss,oo,dss.labels); #calculate the gradient of the loss function 
 
 
-	go=backprop!(model.model,(o,),goo,g.model);
+	go=backprop!(model.model,(model.state.o,),goo,g.model);
 
-	god=view(go,1:size(od,1),:);
-	gop=view(go,size(od, 1)+1:size(od,1) + size(op, 1),:);
-	goq=view(go,size(od,1) + size(op, 1)+1:size(od,1) + size(op, 1) + size(oq, 1),:);
+	dsize = size(model.domainModel[end], 1);
+	psize = size(model.pathModel[end], 1);
+	qsize = size(model.queryModel[end], 1);
 
+	god=view(go,1:dsize,:);
+	gop=view(go,dsize + 1:dsize + psize,:);
+	goq=view(go,dsize + psize + 1:dsize + psize + qsize,:);
 
-	gradient!(model.domainModel,od,(dsd.bags,),god,g.domainModel);
-	gradient!(model.pathModel,op,(dsp.bags,),gop,g.pathModel);
-	gradient!(model.queryModel,oq,(dsq.bags,),goq,g.queryModel);
+	gradient!(model.domainModel, (dataset.domains.x, model.state.od), (dsd.bags,), god, g.domainModel);
+	gradient!(model.pathModel, (dataset.paths.x, model.state.op), (dsp.bags,), gop, g.pathModel);
+	gradient!(model.queryModel, (dataset.queries.x, model.state.oq), (dsq.bags,), goq, g.queryModel);
 
 	model2vector!(g, gg);
 
