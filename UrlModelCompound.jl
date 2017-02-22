@@ -82,3 +82,8 @@ function gradient!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlData
 	f
 end
 
+function fgradient!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound, g::UrlModelCompound)
+	oo = forward!(model, dataset);
+	gradient!(model, loss, dataset, g, oo)
+end
+

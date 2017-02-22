@@ -11,9 +11,7 @@ function trainModelUrl!(model::UrlModelCompound, loss::AbstractLoss, dataset::Ur
 	dss = dataset;
     #dss = sample(dataset,[1000,1000]);
 
-	oo = forward!(model, dss);
-
-	f = gradient!(model, loss, dss, g, oo);
+	f = fgradient!(model, loss, dss, g);
 
 	model2vector!(g, gg);
 
