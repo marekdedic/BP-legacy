@@ -52,7 +52,12 @@ function forward!(model::UrlModelCompound, dataset::UrlDatasetCompound)
 	model.state.op = forward!(model.pathModel, dataset.paths.x, (dataset.paths.bags,))[end];
 	model.state.oq = forward!(model.queryModel, dataset.queries.x, (dataset.queries.bags,))[end];
 
-	model.state.o = vcat(model.state.od, model.state.op, model.state.oq);   #this is expensive!!!!
+	model.state.o::StridedMatrix = Matrix{Float32}(size(model.state.od, 1) + size(model.state.op, 1) + size(model.state.oq, 1), size(model.state.od, 2))
+	dsize = size(model.state.od, 1);
+	psize = size(model.state.op, 1);
+	model.state.o[1:dsize, :] = model.state.od;
+	model.state.o[dsize + 1:dsize + psize, :] = model.state.op;
+	model.state.o[dsize + psize + 1:end, :] = model.state.oq;
 
 	o2 = forward!(model.model, model.state.o);
 	return o2[end];
