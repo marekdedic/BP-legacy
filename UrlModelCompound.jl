@@ -1,7 +1,7 @@
 push!(LOAD_PATH, "EduNets/src");
 
 using EduNets;
-import EduNets: update!, model2vector, model2vector!, forward!;
+import EduNets: update!, model2vector, model2vector!, forward!, gradient!;
 
 type UrlModelCompoundState{T<:AbstractFloat}
 	od::StridedMatrix{T};
@@ -59,7 +59,26 @@ function forward!(model::UrlModelCompound, dataset::UrlDatasetCompound)
 	model.state.o[dsize + 1:dsize + psize, :] = model.state.op;
 	model.state.o[dsize + psize + 1:end, :] = model.state.oq;
 
-	o2 = forward!(model.model, model.state.o);
-	return o2[end];
+	o2 = forward!(model.model, model.state.o)[end];
+	return o2;
+end
+
+function gradient!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound, g::UrlModelCompound, oo)
+	(f, goo) = gradient!(loss,oo,dataset.labels); #calculate the gradient of the loss function 
+
+	go=backprop!(model.model,(model.state.o,),goo,g.model);
+
+	dsize = size(model.domainModel[end], 1);
+	psize = size(model.pathModel[end], 1);
+	qsize = size(model.queryModel[end], 1);
+
+	god=view(go,1:dsize,:);
+	gop=view(go,dsize + 1:dsize + psize,:);
+	goq=view(go,dsize + psize + 1:dsize + psize + qsize,:);
+
+	gradient!(model.domainModel, (dataset.domains.x, model.state.od), (dataset.domains.bags,), god, g.domainModel);
+	gradient!(model.pathModel, (dataset.paths.x, model.state.op), (dataset.paths.bags,), gop, g.pathModel);
+	gradient!(model.queryModel, (dataset.queries.x, model.state.oq), (dataset.queries.bags,), goq, g.queryModel);
+	f
 end
 
