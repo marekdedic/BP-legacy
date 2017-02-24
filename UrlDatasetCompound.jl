@@ -30,9 +30,6 @@ function UrlDatasetCompound(features::Matrix, labels::Vector{Int}, urlIDs::Vecto
 	bags = Vector{UnitRange{Int}}(length(subbags));
 
 	for (i, r) in enumerate(subbags)
-		if length(r) != 3
-			error("Invalid data - found an url which doesn't have 3 parts!");
-		end
 		for (j, part) in enumerate(urlParts[r])
 			if part == 1
 				domainFeatures = hcat(domainFeatures, features[:, first(r) + j - 1]);

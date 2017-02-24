@@ -27,27 +27,35 @@ end
 trigrams(input::AbstractString)::Array{AbstractString} = ngrams(input, 3);
 
 "Separates a given URL into 3 parts - domain, query, and path."
-function separateUrl(url::AbstractString)::Tuple{String, String, String}
-	protocol = "http";
+function separateUrl(url::AbstractString)::Tuple{AbstractVector{AbstractString}, AbstractVector{AbstractString}, AbstractVector{AbstractString}}
 	if contains(url, "://")
 		splitted = split(url, "://");
-		protocol = splitted[1];
 		url = splitted[2];
 	end
 	splitted = split(url, "/");
-	domain = splitted[1];
+	domain = split(splitted[1], ".");
 	splitted = splitted[2:end];
-	path = "";
-	query = "";
+	path = Vector{String}();
+	query = Vector{String}();
 	if length(splitted) != 0
 		splitted2 = split(splitted[end], "?")
 		splitted[end] = splitted2[1];
 		if length(splitted2) > 1
-			query = splitted2[2]
+			query = split(splitted2[2], "&");
 		end
-		path = join(splitted, "/")
+		path = splitted;
 	end
-	return (protocol * "://" * domain, path, query);
+	# Optional: add empty string when some part is empty array
+	if(length(domain) == 0)
+		push!(domain, "");
+	end
+	if(length(path) == 0)
+		push!(path, "");
+	end
+	if(length(query) == 0)
+		push!(query, "");
+	end
+	return (domain, path, query);
 end
 
 "Loads all URLs from a given JSON (.joy.json.gz) file."
@@ -204,19 +212,24 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 				result = resultParser(filename * ".vt.json");
 				for url in urls
 					(domain, path, query) = separateUrl(url);
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(domain, featureCount; T = T));
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(path, featureCount; T = T));
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(query, featureCount; T = T));
-					push!(results[Threads.threadid()], result);
-					push!(results[Threads.threadid()], result);
-					push!(results[Threads.threadid()], result);
-					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-					push!(urlParts[Threads.threadid()], 1);
-					push!(urlParts[Threads.threadid()], 2);
-					push!(urlParts[Threads.threadid()], 3);
-
+					for i in domain
+						featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+						push!(results[Threads.threadid()], result);
+						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
+						push!(urlParts[Threads.threadid()], 1);
+					end
+					for i in path
+						featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+						push!(results[Threads.threadid()], result);
+						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
+						push!(urlParts[Threads.threadid()], 2);
+					end
+					for i in query
+						featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+						push!(results[Threads.threadid()], result);
+						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
+						push!(urlParts[Threads.threadid()], 3);
+					end
 					maxBag[Threads.threadid()] += 1;
 				end
 			end
