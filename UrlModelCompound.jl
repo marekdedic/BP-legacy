@@ -15,17 +15,18 @@ function UrlModelCompoundState(;T::DataType = Float32)
 	UrlModelCompoundState(z, z, z, z);
 end
 
-type UrlModelCompound{A<:Tuple, B<:Tuple, C<:Tuple, D<:Tuple}<:AbstractModel
+type UrlModelCompound{A<:Tuple, B<:Tuple, C<:Tuple, D<:Tuple, E<:AbstractLoss}<:AbstractModel
 	domainModel::A;
 	pathModel::B;
 	queryModel::C;
 	model::D;
+	loss::E;
 
 	state::UrlModelCompoundState;
 end
 
-function UrlModelCompound(domainModel::Tuple, pathModel::Tuple, queryModel::Tuple, model::Tuple)
-	UrlModelCompound(domainModel, pathModel, queryModel, model, UrlModelCompoundState());
+function UrlModelCompound(domainModel::Tuple, pathModel::Tuple, queryModel::Tuple, model::Tuple, loss::AbstractLoss)
+	UrlModelCompound(domainModel, pathModel, queryModel, model, loss, UrlModelCompoundState());
 end
 
 # update = vector2model
@@ -63,27 +64,27 @@ function forward!(model::UrlModelCompound, dataset::UrlDatasetCompound)
 	return o2;
 end
 
-function gradient!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound, g::UrlModelCompound, oo)
-	(f, goo) = gradient!(loss,oo,dataset.labels); #calculate the gradient of the loss function 
+function gradient!(model::UrlModelCompound, dataset::UrlDatasetCompound, g::UrlModelCompound, oo)
+	(f, goo) = gradient!(model.loss, oo, dataset.labels); #calculate the gradient of the loss function 
 
-	go=backprop!(model.model,(model.state.o,),goo,g.model);
+	go=backprop!(model.model, (model.state.o,), goo, g.model);
 
 	dsize = size(model.domainModel[end], 1);
 	psize = size(model.pathModel[end], 1);
 	qsize = size(model.queryModel[end], 1);
 
-	god=view(go,1:dsize,:);
-	gop=view(go,dsize + 1:dsize + psize,:);
-	goq=view(go,dsize + psize + 1:dsize + psize + qsize,:);
+	god = view(go, 1:dsize,:);
+	gop = view(go, dsize + 1:dsize + psize,:);
+	goq = view(go, dsize + psize + 1:dsize + psize + qsize,:);
 
 	gradient!(model.domainModel, (dataset.domains.x, model.state.od), (dataset.domains.bags,), god, g.domainModel);
 	gradient!(model.pathModel, (dataset.paths.x, model.state.op), (dataset.paths.bags,), gop, g.pathModel);
 	gradient!(model.queryModel, (dataset.queries.x, model.state.oq), (dataset.queries.bags,), goq, g.queryModel);
-	f
+	return f;
 end
 
-function fgradient!(model::UrlModelCompound, loss::AbstractLoss, dataset::UrlDatasetCompound, g::UrlModelCompound)
+function fgradient!(model::UrlModelCompound, dataset::UrlDatasetCompound, g::UrlModelCompound)
 	oo = forward!(model, dataset);
-	gradient!(model, loss, dataset, g, oo)
+	gradient!(model, dataset, g, oo)
 end
 
