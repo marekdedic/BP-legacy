@@ -2,7 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
-function trainModelUrl!(model::UrlModelCompound, dataset::UrlDatasetCompound; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
+function trainModelUrl!(model::UrlModel, dataset::UrlDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
   gg=model2vector(model);
   g=deepcopy(model)
 

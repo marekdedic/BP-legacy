@@ -1,59 +1,63 @@
 push!(LOAD_PATH, "EduNets/src");
 
-import GZip
-import JSON
-using EduNets
+using EduNets;
 
 import Base.Operators.getindex
 
 type UrlDataset{T<:AbstractFloat}<:AbstractDataset
-	"Features extracted from domain part of url"
-	domainFeatures::AbstractMatrix{T};
-	"Features extracted from path part of url"
-	pathFeatures::AbstractMatrix{T};
-	"Features extracted from query part of url"
-	queryFeatures::AbstractMatrix{T};
-	"Label vector whose size is the number of bags - each element of y corresponds to an element of bags"
-	labels::AbstractVector{Int};
+	domains::SortedSingleBagDataset{T}
+	paths::SortedSingleBagDataset{T}
+	queries::SortedSingleBagDataset{T}
 
-	"Each element of bags is one bag. Its elements are indices of lines from features, which are in this bag."
-	bags::Vector{Vector{Int}};
+	labels::AbstractVector{Int}
+end
 
-	#info::DataFrames.DataFrame; # Additional metadata, not used
-end;
+# TODO: Handle empty bags
 
-	"Labeling of URL parts: 1 - domain; 2 - path; 3 - query"
-function UrlDataset(features::Matrix, labels::Vector{Int}, bagIDs, urlParts::Vector{Int}; T::DataType = Float64)::UrlDataset
-	bagMap = Dict{eltype(bagIDs), Vector{Int}}();
-	for i in 1:length(bagIDs)
-		if(!haskey(bagMap, bagIDs[i]))
-			bagMap[bagIDs[i]] = [i];
-		else
-			push!(bagMap[bagIDs[i]], i)
-		end
-	end
-	bags = Vector{Vector{Int}}(length(bagMap));
-	bagLabels = Vector{Int}(length(bagMap))
-	for (i, it) in enumerate(bagMap)
-		bags[i] = it[2];
-		bagLabels[i] = maximum(labels[it[2]]);
-	end
+function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; T::DataType = Float32)::UrlDataset
+	permutation = sortperm(urlIDs);
+	features = features[:, permutation];
+	labels = labels[permutation];
+	urlIDs = urlIDs[permutation]
+	urlParts = urlParts[permutation];
+	subbags = findranges(urlIDs);
+
 	domainFeatures = Matrix{T}(size(features)[1], 0);
 	pathFeatures = Matrix{T}(size(features)[1], 0);
 	queryFeatures = Matrix{T}(size(features)[1], 0);
-	for i in 1:length(urlParts)
-		if(urlParts[i] == 1)
-			domainFeatures = hcat(domainFeatures, features[:,i]);
-		elseif(urlParts[i] == 2)
-			pathFeatures = hcat(pathFeatures, features[:,i]);
-		elseif(urlParts[i] == 3)
-			queryFeatures = hcat(queryFeatures, features[:,i]);
+	bagLabels = Vector{Int}(length(subbags));
+	# TODO: Implement bags
+	bags = Vector{UnitRange{Int}}(length(subbags));
+
+	for (i, r) in enumerate(subbags)
+		for (j, part) in enumerate(urlParts[r])
+			if part == 1
+				domainFeatures = hcat(domainFeatures, features[:, first(r) + j - 1]);
+			elseif part == 2
+				pathFeatures = hcat(pathFeatures, features[:, first(r) + j - 1]);
+			elseif part == 1
+				queryFeatures = hcat(queryFeatures, features[:, first(r) + j - 1]);
+			end
 		end
+		bagLabels[i] = maximum(labels[r]);
+		bags[i] = i:i;
 	end
-	return UrlDataset(domainFeatures, pathFeatures, queryFeatures, bagLabels, bags);
+
+	domains = SortedSingleBagDataset(domainFeatures, bagLabels, bags);
+	paths = SortedSingleBagDataset(domainFeatures, bagLabels, bags);
+	queries = SortedSingleBagDataset(domainFeatures, bagLabels, bags);
+	UrlDataset(domains, paths, queries, bagLabels)
+end
+
+function featureSize(dataset::UrlDataset)::Int
+	size(dataset.domains.x, 1)
+end
+
+function getindex(dataset::UrlDataset, i::Int)
+	getindex(dataset, [i])
 end
 
 function getindex(dataset::UrlDataset, indices::AbstractArray{Int})
+	UrlDataset(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.labels[indices])
 end
-
 

@@ -1,8 +1,9 @@
 push!(LOAD_PATH, "EduNets/src");
 
-include("UrlDatasetCompound.jl");
-include("UrlModelCompound.jl");
+include("UrlDataset.jl");
+include("UrlModel.jl");
 
+include("loadDataset.jl");
 include("initializeModel.jl");
 include("initializeModelUrl.jl");
 include("trainModel.jl");
