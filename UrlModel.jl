@@ -65,7 +65,7 @@ function forward!(model::UrlModel, dataset::UrlDataset)
 end
 
 function gradient!(model::UrlModel, dataset::UrlDataset, g::UrlModel, oo)
-	(f, goo) = gradient!(model.loss, oo, dataset.labels); #calculate the gradient of the loss function 
+	(f, goo) = gradient!(model.loss, oo, dataset.y); #calculate the gradient of the loss function 
 
 	go=backprop!(model.model, (model.state.o,), goo, g.model);
 

@@ -9,7 +9,7 @@ type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 	paths::SortedSingleBagDataset{T}
 	queries::SortedSingleBagDataset{T}
 
-	labels::AbstractVector{Int}
+	y::AbstractVector{Int}
 end
 
 # TODO: Handle empty bags
@@ -58,6 +58,6 @@ function getindex(dataset::UrlDataset, i::Int)
 end
 
 function getindex(dataset::UrlDataset, indices::AbstractArray{Int})
-	UrlDataset(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.labels[indices])
+	UrlDataset(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.y[indices])
 end
 

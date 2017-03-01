@@ -3,7 +3,7 @@ push!(LOAD_PATH, "EduNets/src");
 using EduNets
 using Plots
 
-function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
+function testModelROC(model::AbstractModel, dataset::AbstractDataset)
 	out = forward!(model, dataset);
 	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2
 	nmask = dataset.y .== 1;
@@ -18,7 +18,7 @@ function testModelROC(model::SingleBagModel, dataset::SingleBagDataset)
 	plot!(identity; linestyle = :dot, label="");
 end
 
-function testModelPR(model::SingleBagModel, dataset::SingleBagDataset)
+function testModelPR(model::AbstractModel, dataset::AbstractDataset)
 	out = forward!(model, dataset);
 	pmask = dataset.y .== 2; # Bool array, true when dataset.y == 2 i. e. for real positives
 	nmask = dataset.y .== 1;
