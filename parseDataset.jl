@@ -34,7 +34,20 @@ function separateUrl(url::AbstractString)::Tuple{AbstractVector{AbstractString},
 		url = splitted[2];
 	end
 	splitted = split(url, "/");
-	domain = split(splitted[1], ".");
+	rawDomain = splitted[1];
+	# Decode ascii-hex encoded IPs
+	if(startswith(rawDomain, "HEX"))
+		rawDomain = rawDomain[5:end]
+		IP = ""
+		for i::Int in 1:(length(rawDomain)/2)
+			c = Char(parse(Int32, rawDomain[(2i - 1):2i], 16));
+			IP *= string(c);
+		end
+		domain = Vector{String}();
+		push!(domain, IP);
+	else
+		domain = split(rawDomain, ".");
+	end
 	splitted = splitted[2:end];
 	path = Vector{String}();
 	query = Vector{String}();
@@ -260,9 +273,12 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 	table = DataFrames.readtable(file);
 	urls = table[:, 7];
 	labels = table[:, 9];
+	#Threads.@threads for j in 1:size(labels, 1)
 	for j in 1:size(labels, 1)
-		# TODO: decode HEX urls
 		(domain, path, query) = separateUrl(urls[j]);
+		if(j % 1000 == 0)
+			println(j);
+		end
 		for i in domain
 			featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
