@@ -261,6 +261,7 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 	urls = table[:, 7];
 	labels = table[:, 9];
 	for j in 1:size(labels, 1)
+		# TODO: decode HEX urls
 		(domain, path, query) = separateUrl(urls[j]);
 		for i in domain
 			featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
