@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 import JLD
 using EduNets
 

@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 using EduNets
 
 function initializeModel(;file::AbstractString="dataset.jld", percentage::Float32 = 0.9f0);

@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 import GZip;
 import JSON;
 import JLD;

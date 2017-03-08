@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 include("UrlDataset.jl");
 include("UrlModel.jl");
 

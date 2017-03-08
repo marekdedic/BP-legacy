@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 using EduNets
 
 function trainModelUrl!(model::UrlModel, loss::AbstractLoss, dataset::UrlDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void

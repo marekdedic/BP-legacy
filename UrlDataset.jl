@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 using EduNets;
 
 import Base.Operators.getindex

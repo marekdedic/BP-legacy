@@ -1,5 +1,3 @@
-push!(LOAD_PATH, "EduNets/src");
-
 using EduNets
 
 function trainModel!(model::SingleBagModel, dataset::SingleBagDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
