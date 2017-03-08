@@ -181,7 +181,7 @@ end
 # ThreatgridSample loading functions
 
 function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::SingleBagDataset
-	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
+	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	maxBag = [1 for i in 1:Threads.nthreads()];
@@ -196,7 +196,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
 				result = resultParser(filename * ".vt.json");
 				for url in urls
-					featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(url, featureCount; T = T));
+					push!(featureMatrix[Threads.threadid()], featureGenerator(url, featureCount; T = T));
 					push!(results[Threads.threadid()], result);
 					push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 				end
@@ -205,7 +205,11 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 		end
 	end
 	for i in 1:Threads.nthreads()
-		aggregatedFeatures = hcat(aggregatedFeatures, featureMatrix[i]);
+		features = hcat(featureMatrix[i]...);
+		if length(size(features)) != 2
+			continue;
+		end
+		aggregatedFeatures = hcat(aggregatedFeatures, features);
 		aggregatedResults = vcat(aggregatedResults, results[i]);
 		bags[i] += size(aggregatedBags)[1];
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
@@ -214,7 +218,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 end
 
 function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
-	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
+	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	urlParts = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -233,19 +237,19 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 				for url in urls
 					(domain, path, query) = separateUrl(url);
 					for i in domain
-						featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+						push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 						push!(results[Threads.threadid()], result);
 						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 						push!(urlParts[Threads.threadid()], 1);
 					end
 					for i in path
-						featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+						push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 						push!(results[Threads.threadid()], result);
 						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 						push!(urlParts[Threads.threadid()], 2);
 					end
 					for i in query
-						featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+						push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 						push!(results[Threads.threadid()], result);
 						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 						push!(urlParts[Threads.threadid()], 3);
@@ -256,7 +260,11 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 		end
 	end
 	for i in 1:Threads.nthreads()
-		aggregatedFeatures = hcat(aggregatedFeatures, featureMatrix[i]);
+		features = hcat(featureMatrix[i]...);
+		if length(size(features)) != 2
+			continue;
+		end
+		aggregatedFeatures = hcat(aggregatedFeatures, features);
 		aggregatedResults = vcat(aggregatedResults, results[i]);
 		bags[i] += size(aggregatedBags)[1];
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
