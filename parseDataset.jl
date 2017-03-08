@@ -261,7 +261,7 @@ end
 
 # Sample loading function
 function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
-	featureMatrix = [Matrix{T}(featureCount, 0) for i in 1:Threads.nthreads()];
+	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	urlParts = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -283,19 +283,19 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 			println(j);
 		end
 		for i in domain
-			featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
 			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 			push!(urlParts[Threads.threadid()], 1);
 		end
 		for i in path
-			featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
 			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 			push!(urlParts[Threads.threadid()], 2);
 		end
 		for i in query
-			featureMatrix[Threads.threadid()] = hcat(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
+			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
 			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 			push!(urlParts[Threads.threadid()], 3);
@@ -303,7 +303,11 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 		maxBag[Threads.threadid()] += 1;
 	end
 	for i in 1:Threads.nthreads()
-		aggregatedFeatures = hcat(aggregatedFeatures, featureMatrix[i]);
+		features = hcat(featureMatrix[i]...);
+		if length(size(features)) != 2
+			continue;
+		end
+		aggregatedFeatures = hcat(aggregatedFeatures, features);
 		aggregatedResults = vcat(aggregatedResults, results[i]);
 		bags[i] += size(aggregatedBags)[1];
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
