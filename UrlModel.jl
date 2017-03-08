@@ -1,7 +1,5 @@
-push!(LOAD_PATH, "EduNets/src");
-
 using EduNets;
-import EduNets: update!, model2vector, model2vector!, forward!, gradient!;
+import EduNets: update!, model2vector, model2vector!, forward!, gradient!, fgradient!;
 
 type UrlModelState{T<:AbstractFloat}
 	od::StridedMatrix{T};
@@ -15,18 +13,17 @@ function UrlModelState(;T::DataType = Float32)
 	UrlModelState(z, z, z, z);
 end
 
-type UrlModel{A<:Tuple, B<:Tuple, C<:Tuple, D<:Tuple, E<:AbstractLoss}<:AbstractModel
+type UrlModel{A<:Tuple, B<:Tuple, C<:Tuple, D<:Tuple}<:AbstractModel
 	domainModel::A;
 	pathModel::B;
 	queryModel::C;
 	model::D;
-	loss::E;
 
 	state::UrlModelState;
 end
 
-function UrlModel(domainModel::Tuple, pathModel::Tuple, queryModel::Tuple, model::Tuple, loss::AbstractLoss)
-	UrlModel(domainModel, pathModel, queryModel, model, loss, UrlModelState());
+function UrlModel(domainModel::Tuple, pathModel::Tuple, queryModel::Tuple, model::Tuple)
+	UrlModel(domainModel, pathModel, queryModel, model,UrlModelState());
 end
 
 # update = vector2model
@@ -64,10 +61,11 @@ function forward!(model::UrlModel, dataset::UrlDataset)
 	return o2;
 end
 
-function gradient!(model::UrlModel, dataset::UrlDataset, g::UrlModel, oo)
-	(f, goo) = gradient!(model.loss, oo, dataset.y); #calculate the gradient of the loss function 
+function fgradient!(model::UrlModel,loss::EduNets.AbstractLoss, dataset::UrlDataset, g::UrlModel)
+	oo=forward!(model,dataset)
+	(f, goo) = gradient!(loss, oo, dataset.y); #calculate the gradient of the loss function 
 
-	go=backprop!(model.model, (model.state.o,), goo, g.model);
+	(f1,go)=fbackprop!(model.model, (model.state.o,), goo, g.model);
 
 	dsize = size(model.domainModel[end], 1);
 	psize = size(model.pathModel[end], 1);
@@ -77,14 +75,12 @@ function gradient!(model::UrlModel, dataset::UrlDataset, g::UrlModel, oo)
 	gop = view(go, dsize + 1:dsize + psize,:);
 	goq = view(go, dsize + psize + 1:dsize + psize + qsize,:);
 
-	gradient!(model.domainModel, (dataset.domains.x, model.state.od), (dataset.domains.bags,), god, g.domainModel);
-	gradient!(model.pathModel, (dataset.paths.x, model.state.op), (dataset.paths.bags,), gop, g.pathModel);
-	gradient!(model.queryModel, (dataset.queries.x, model.state.oq), (dataset.queries.bags,), goq, g.queryModel);
-	return f;
+	f2=fgradient!(model.domainModel, (dataset.domains.x, model.state.od), (dataset.domains.bags,), god, g.domainModel);
+	f3=fgradient!(model.pathModel, (dataset.paths.x, model.state.op), (dataset.paths.bags,), gop, g.pathModel);
+	f4=fgradient!(model.queryModel, (dataset.queries.x, model.state.oq), (dataset.queries.bags,), goq, g.queryModel);
+	return f+f1+f2+f3+f4;
 end
 
-function fgradient!(model::UrlModel, dataset::UrlDataset, g::UrlModel)
-	oo = forward!(model, dataset);
-	gradient!(model, dataset, g, oo)
+function addsoftmax(model::UrlModel,T)
+	UrlModel(model.domainModel,model.pathModel,model.queryModel, (model.model...,SoftMaxLayer(size(model[end],2),T=T)),UrlModelState())
 end
-

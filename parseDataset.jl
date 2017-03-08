@@ -270,9 +270,12 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 	aggregatedResults = Vector{Int}(0);
 	aggregatedBags = Vector{Int}(0);
 	aggregatedUrlParts = Vector{Int}(0);
-	table = DataFrames.readtable(file);
-	urls = table[:, 7];
-	labels = table[:, 9];
+
+	table = GZip.open(file,"r") do fid
+		readcsv(fid)
+	end
+	urls = table[:, 1];
+	labels = (table[:, 3].!="legit")+1;
 	#Threads.@threads for j in 1:size(labels, 1)
 	for j in 1:size(labels, 1)
 		(domain, path, query) = separateUrl(urls[j]);
