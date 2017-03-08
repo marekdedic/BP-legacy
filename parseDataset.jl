@@ -38,10 +38,16 @@ function separateUrl(url::AbstractString)::Tuple{AbstractVector{AbstractString},
 	# Decode ascii-hex encoded IPs
 	if(startswith(rawDomain, "HEX"))
 		rawDomain = rawDomain[5:end]
+		portSplit = split(rawDomain, ":");
+		rawDomain = portSplit[1];
+		portSplit = portSplit[2:end];
 		IP = ""
 		for i::Int in 1:(length(rawDomain)/2)
 			c = Char(parse(Int32, rawDomain[(2i - 1):2i], 16));
 			IP *= string(c);
+		end
+		for i in portSplit
+			IP *= i;
 		end
 		domain = Vector{String}();
 		push!(domain, IP);
@@ -106,7 +112,7 @@ end
 # Feature generation functions
 
 function trigramFeatureGenerator(input::AbstractString, modulo::Int; T::DataType = Float32)::Array{Float32}
-	output = spzeros(T, modulo);
+	output = zeros(T, modulo);
 	for i in trigrams(input)
 		index = mod(hash(i), modulo);
 		output[index + 1] += 1;
