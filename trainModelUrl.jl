@@ -2,7 +2,7 @@ push!(LOAD_PATH, "EduNets/src");
 
 using EduNets
 
-function trainModelUrl!(model::UrlModel, dataset::UrlDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
+function trainModelUrl!(model::UrlModel, loss::AbstractLoss, dataset::UrlDataset; T::DataType=Float32, lambda::Float32=1f-6, iter::Int=1000)::Void
   gg=model2vector(model);
   g=deepcopy(model)
 
@@ -11,7 +11,7 @@ function trainModelUrl!(model::UrlModel, dataset::UrlDataset; T::DataType=Float3
 	dss = dataset;
     #dss = sample(dataset,[1000,1000]);
 
-	f = fgradient!(model, dss, g);
+	f = fgradient!(model, loss, dss, g);
 
 	model2vector!(g, gg);
 
