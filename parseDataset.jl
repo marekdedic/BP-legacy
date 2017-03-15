@@ -272,7 +272,7 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 end
 
 # Sample loading function
-function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
+function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
 	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -326,6 +326,47 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 		aggregatedUrlParts = vcat(aggregatedUrlParts, urlParts[i]);
 	end
 	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
+end
+
+# Sample loading function
+function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
+	featureMatrix = Vector{Vector{T}}(0);
+	results = Vector{Int}(0);
+	bags = Vector{Int}(0);
+	urlParts = Vector{Int}(0);
+	maxBag = 1;
+	table = GZip.open(file,"r") do fid
+		readcsv(fid)
+	end
+	urls = table[:, 1];
+	labels = (table[:, 3].!="legit")+1;
+	#Threads.@threads for j in 1:size(labels, 1)
+	for j in 1:size(labels, 1)
+		(domain, path, query) = separateUrl(urls[j]);
+		if(j % 1000 == 0)
+			println(j);
+		end
+		for i in domain
+			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
+			push!(results, labels[j]);
+			push!(bags, maxBag);
+			push!(urlParts, 1);
+		end
+		for i in path
+			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
+			push!(results, labels[j]);
+			push!(bags, maxBag);
+			push!(urlParts, 2);
+		end
+		for i in query
+			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
+			push!(results, labels[j]);
+			push!(bags, maxBag);
+			push!(urlParts, 3);
+		end
+		maxBag += 1;
+	end
+	return UrlDataset(hcat(featureMatrix...),results, bags, urlParts);
 end
 
 # Actual realisations of a complete dataset parser.

@@ -84,3 +84,4 @@ end
 function addsoftmax(model::UrlModel,T)
 	UrlModel(model.domainModel,model.pathModel,model.queryModel, (model.model...,SoftMaxLayer(size(model[end],2),T=T)),UrlModelState())
 end
+

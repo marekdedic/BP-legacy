@@ -59,3 +59,18 @@ function getindex(dataset::UrlDataset, indices::AbstractArray{Int})
 	UrlDataset(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.y[indices])
 end
 
+function vcat(d1::UrlDataset,d2::UrlDataset)
+	UrlDataset(vcat(d1.domains,d2.domains), vcat(d1.paths,d2.paths), vcat(d1.queries,d2.queries), vcat(d1.y,d2.y))
+end
+
+function sample(ds::UrlDataset,n::Int64)
+  indexes=sample(1:length(ds.y),min(n,length(ds.y)),replace=false);
+  return(getindex(ds,indexes));
+end
+
+function sample(ds::UrlDataset,n::Array{Int64})
+  classbagids=map(i->findn(ds.y.==i),1:maximum(ds.y));
+  indexes=mapreduce(i->sample(classbagids[i],minimum([length(classbagids[i]),n[i]]);replace=false),append!,1:min(length(classbagids),length(n)));
+  return(getindex(ds,indexes));
+end
+
