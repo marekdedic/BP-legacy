@@ -1,6 +1,8 @@
 using EduNets;
 
-import Base.Operators.getindex
+import Base.Operators.getindex#, Base.vcat
+#import EduNets.sample
+#import StatsBase.sample
 
 type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 	domains::SortedSingleBagDataset{T}
