@@ -343,14 +343,19 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
 	end
+	if any(table[:, 3].!="legit")
+		table=table[table[:, 3].!="legit",:]
+	end
+
+	table=table[1:min(size(table,1),6000),:]
 	urls = table[:, 1];
 	labels = (table[:, 3].!="legit")+1;
 	#Threads.@threads for j in 1:size(labels, 1)
 	for j in 1:size(labels, 1)
 		(domain, path, query) = separateUrl(urls[j]);
-		if(j % 1000 == 0)
-			println(j);
-		end
+		#if(j % 1000 == 0)
+			#println(j);
+		#end
 		for i in domain
 			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
 			push!(results, labels[j]);
