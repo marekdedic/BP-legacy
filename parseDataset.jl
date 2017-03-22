@@ -286,6 +286,11 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
 	end
+	if any(table[:, 3].!="legit")
+		table=table[table[:, 3].!="legit",:]
+	end
+
+	table=table[1:min(size(table,1),6000),:]
 	urls = table[:, 1];
 	labels = (table[:, 3].!="legit")+1;
 	#Threads.@threads for j in 1:size(labels, 1)
