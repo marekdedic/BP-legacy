@@ -277,11 +277,13 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	urlParts = [Vector{Int}(0) for i in 1:Threads.nthreads()];
+	info = [Vector{AbstractString}(0) for i in 1:Threads.nthreads()];
 	maxBag = [1 for i in 1:Threads.nthreads()];
 	aggregatedFeatures = Matrix{T}(featureCount, 0);
 	aggregatedResults = Vector{Int}(0);
 	aggregatedBags = Vector{Int}(0);
 	aggregatedUrlParts = Vector{Int}(0);
+	aggregatedInfo = Vector{AbstractString}(0);
 
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
@@ -304,18 +306,21 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 			push!(results[Threads.threadid()], labels[j]);
 			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 			push!(urlParts[Threads.threadid()], 1);
+			push!(info[Threads.threadid()], urls[j]);
 		end
 		for i in path
 			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
 			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 			push!(urlParts[Threads.threadid()], 2);
+			push!(info[Threads.threadid()], urls[j]);
 		end
 		for i in query
 			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
 			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
 			push!(urlParts[Threads.threadid()], 3);
+			push!(info[Threads.threadid()], urls[j]);
 		end
 		maxBag[Threads.threadid()] += 1;
 	end
@@ -329,8 +334,9 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 		bags[i] += size(aggregatedBags)[1];
 		aggregatedBags = vcat(aggregatedBags, bags[i]);
 		aggregatedUrlParts = vcat(aggregatedUrlParts, urlParts[i]);
+		aggregatedInfo = vcat(aggregatedInfo, info[i]);
 	end
-	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
+	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts; info = aggregatedInfo);
 end
 
 # Sample loading function
@@ -339,6 +345,7 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 	results = Vector{Int}(0);
 	bags = Vector{Int}(0);
 	urlParts = Vector{Int}(0);
+	info = Vector{AbstractString}(0);
 	maxBag = 1;
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
@@ -361,22 +368,25 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 			push!(results, labels[j]);
 			push!(bags, maxBag);
 			push!(urlParts, 1);
+			push!(info, urls[j]);
 		end
 		for i in path
 			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
 			push!(results, labels[j]);
 			push!(bags, maxBag);
 			push!(urlParts, 2);
+			push!(info, urls[j]);
 		end
 		for i in query
 			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
 			push!(results, labels[j]);
 			push!(bags, maxBag);
 			push!(urlParts, 3);
+			push!(info, urls[j]);
 		end
 		maxBag += 1;
 	end
-	return UrlDataset(hcat(featureMatrix...),results, bags, urlParts);
+	return UrlDataset(hcat(featureMatrix...),results, bags, urlParts; info = info);
 end
 
 # Actual realisations of a complete dataset parser.

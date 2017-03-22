@@ -10,22 +10,25 @@ type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 	queries::SortedSingleBagDataset{T}
 
 	y::AbstractVector{Int}
+	info::DataFrames.DataFrame;
 end
 
 # TODO: Handle empty bags
 
-function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; T::DataType = Float32)::UrlDataset
+function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; info::Vector{AbstractString} = Vector{AbstractString}(0), T::DataType = Float32)::UrlDataset
 	permutation = sortperm(urlIDs);
 	features = features[:, permutation];
 	labels = labels[permutation];
 	urlIDs = urlIDs[permutation]
 	urlParts = urlParts[permutation];
+	info = info[permutation];
 	subbags = findranges(urlIDs);
 
 	domainFeatures = Vector{Vector{T}}(0);
 	pathFeatures = Vector{Vector{T}}(0);
 	queryFeatures = Vector{Vector{T}}(0);
 	bagLabels = Vector{Int}(length(subbags));
+	bagInfo = Vector{AbstractString}(length(subbags));
 	# TODO: Implement bags
 	bags = Vector{UnitRange{Int}}(length(subbags));
 
@@ -40,13 +43,14 @@ function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, 
 			end
 		end
 		bagLabels[i] = maximum(labels[r]);
+		bagInfo[i] = info[r][1];
 		bags[i] = i:i;
 	end
 
 	domains = SortedSingleBagDataset(hcat(domainFeatures...), bagLabels, bags);
 	paths = SortedSingleBagDataset(hcat(pathFeatures...), bagLabels, bags);
 	queries = SortedSingleBagDataset(hcat(queryFeatures...), bagLabels, bags);
-	UrlDataset(domains, paths, queries, bagLabels)
+	UrlDataset(domains, paths, queries, bagLabels, convert(DataFrames.DataFrame, reshape(bagInfo, length(bagInfo), 1)))
 end
 
 function featureSize(dataset::UrlDataset)::Int
@@ -58,11 +62,16 @@ function getindex(dataset::UrlDataset, i::Int)
 end
 
 function getindex(dataset::UrlDataset, indices::AbstractArray{Int})
-	UrlDataset(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.y[indices])
+	if size(dataset.info, 1) == 0
+		info = DataFrames.DataFrame([]);
+	else
+		info = dataset.info[indices, :];
+	end
+	UrlDataset(dataset.domains[indices], dataset.paths[indices], dataset.queries[indices], dataset.y[indices], info)
 end
 
 function vcat(d1::UrlDataset,d2::UrlDataset)
-	UrlDataset(vcat(d1.domains,d2.domains), vcat(d1.paths,d2.paths), vcat(d1.queries,d2.queries), vcat(d1.y,d2.y))
+	UrlDataset(vcat(d1.domains,d2.domains), vcat(d1.paths,d2.paths), vcat(d1.queries,d2.queries), vcat(d1.y,d2.y), vcat(d1.info, d2.info))
 end
 
 function sample(ds::UrlDataset,n::Int64)
