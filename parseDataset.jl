@@ -288,14 +288,16 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
 	end
+	if any(table[:, 3].!="legit")
+		table=table[table[:, 3].!="legit",:]
+	end
+
+	table=table[1:min(size(table,1),6000),:]
 	urls = table[:, 1];
 	labels = (table[:, 3].!="legit")+1;
 	#Threads.@threads for j in 1:size(labels, 1)
 	for j in 1:size(labels, 1)
 		(domain, path, query) = separateUrl(urls[j]);
-		if(j % 1000 == 0)
-			println(j);
-		end
 		for i in domain
 			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
 			push!(results[Threads.threadid()], labels[j]);
@@ -334,7 +336,7 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts; info = aggregatedInfo);
 end
 
-# Sample loading function
+# Sample loading function - non-threaded version
 function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
 	featureMatrix = Vector{Vector{T}}(0);
 	results = Vector{Int}(0);
@@ -345,14 +347,16 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
 	end
+	if any(table[:, 3].!="legit")
+		table=table[table[:, 3].!="legit",:]
+	end
+
+	table=table[1:min(size(table,1),6000),:]
 	urls = table[:, 1];
 	labels = (table[:, 3].!="legit")+1;
 	#Threads.@threads for j in 1:size(labels, 1)
 	for j in 1:size(labels, 1)
 		(domain, path, query) = separateUrl(urls[j]);
-		if(j % 1000 == 0)
-			println(j);
-		end
 		for i in domain
 			push!(featureMatrix, featureGenerator(i, featureCount; T = T));
 			push!(results, labels[j]);
