@@ -30,7 +30,11 @@ function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, 
 	pathFeatures = Vector{Vector{T}}(0);
 	queryFeatures = Vector{Vector{T}}(0);
 	bagLabels = Vector{Int}(length(subbags));
-	bagInfo = Vector{AbstractString}(length(subbags));
+	if size(info, 1) != 0;
+		bagInfo = Vector{AbstractString}(length(subbags));
+	else
+		bagInfo = Vector{AbstractString}(0);
+	end
 	# TODO: Implement bags
 	bags = Vector{UnitRange{Int}}(length(subbags));
 
