@@ -21,7 +21,9 @@ function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, 
 	labels = labels[permutation];
 	urlIDs = urlIDs[permutation]
 	urlParts = urlParts[permutation];
-	info = info[permutation];
+	if size(info, 1) != 0;
+		info = info[permutation];
+	end
 	subbags = findranges(urlIDs);
 
 	domainFeatures = Vector{Vector{T}}(0);
@@ -43,7 +45,9 @@ function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, 
 			end
 		end
 		bagLabels[i] = maximum(labels[r]);
-		bagInfo[i] = info[r][1];
+		if size(info, 1) != 0;
+			bagInfo[i] = info[r][1];
+		end
 		bags[i] = i:i;
 	end
 
