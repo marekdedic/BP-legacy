@@ -79,6 +79,6 @@ function fgradient!(model::UrlModel,loss::EduNets.AbstractLoss, dataset::UrlData
 end
 
 function addsoftmax(model::UrlModel,T)
-	UrlModel(model.domainModel, model.pathModel, model.queryModel, (model.model...,SoftMaxLayer(size(model[end], 2), T = T)), UrlModelState())
+	UrlModel(model.domainModel, model.pathModel, model.queryModel, (model.model...,SoftmaxLayer(size(model.model[end], 2), T = T)))
 end
 
