@@ -336,14 +336,23 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts; info = aggregatedInfo);
 end
 
+type SampleBatchParser
+	urls::Vector{AbstractString};
+	labels::Vector{Int};
+	batchSize::Int;
+	currentBatch::Int;
+
+	featureCount::Int;
+	featureGenerator::Function;
+	T::DataType;
+end
+
+function SampleBatchParser(urls::Vector{AbstractString}, labels::Vector{Int}, batchSize::Int; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)
+	return SampleBatchParser(urls, labels, batchSize, 1, featureCount, featureGenerator, T);
+end
+
 # Sample loading function - non-threaded version
-function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
-	featureMatrix = Vector{Vector{T}}(0);
-	results = Vector{Int}(0);
-	bags = Vector{Int}(0);
-	urlParts = Vector{Int}(0);
-	info = Vector{AbstractString}(0);
-	maxBag = 1;
+function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::SampleBatchParser
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
 	end
@@ -351,9 +360,30 @@ function loadSampleUrl(file::AbstractString; featureCount::Int = 2053, featureGe
 		table=table[table[:, 3].!="legit",:]
 	end
 
-	table=table[1:min(size(table,1),6000),:]
 	urls = table[:, 1];
 	labels = (table[:, 3].!="legit")+1;
+	return SampleBatchParser(convert(Vector{AbstractString}, urls), convert(Vector{Int}, labels), batchSize; featureCount = featureCount, featureGenerator = featureGenerator, T = T)
+end
+
+function nextBatch!(sbp::SampleBatchParser)::UrlDataset
+	if sbp.batchSize == 0
+		return loadSampleUrl(sbp.urls, sbp.labels; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T);
+	else
+		start = min((sbp.currentBatch - 1) * sbp.batchSize + 1, length(sbp.urls));
+		stop = min(sbp.currentBatch * sbp.batchSize, length(sbp.urls));
+		sbp.currentBatch += 1;
+		return loadSampleUrl(sbp.urls[start:stop], sbp.labels[start:stop]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T);
+	end
+end
+
+function loadSampleUrl(urls::Vector, labels::Vector; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::UrlDataset
+	featureMatrix = Vector{Vector{T}}(0);
+	results = Vector{Int}(0);
+	bags = Vector{Int}(0);
+	urlParts = Vector{Int}(0);
+	info = Vector{AbstractString}(0);
+	maxBag = 1;
+
 	#Threads.@threads for j in 1:size(labels, 1)
 	for j in 1:size(labels, 1)
 		(domain, path, query) = separateUrl(urls[j]);
@@ -405,7 +435,8 @@ function parseDatasetAVClassUrl(dir::AbstractString, file::AbstractString = "dat
 end
 
 function parseSampleUrl(source::AbstractString, file::AbstractString = "dataset.jld")::Void
-	dataset = loadSampleUrl(source);
+	sbp = loadSampleUrl(source; batchSize = 0);
+	dataset = nextBatch!(sbp);
 	JLD.save(file, "dataset", dataset);
 	return nothing;
 end
