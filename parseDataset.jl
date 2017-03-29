@@ -365,17 +365,17 @@ function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount
 	return SampleBatchParser(convert(Vector{AbstractString}, urls), convert(Vector{Int}, labels), batchSize; featureCount = featureCount, featureGenerator = featureGenerator, T = T)
 end
 
-function nextBatch!(sbp::SampleBatchParser)::UrlDataset
+function nextBatch!(sbp::SampleBatchParser)::Tuple{Bool, UrlDataset}
 	if sbp.batchSize == 0
-		return loadSampleUrl(sbp.urls, sbp.labels; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T);
+		return (true, loadSampleUrl(sbp.urls, sbp.labels; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T));
 	else
 		start = min((sbp.currentBatch - 1) * sbp.batchSize + 1, length(sbp.urls));
 		stop = min(sbp.currentBatch * sbp.batchSize, length(sbp.urls));
 		if start == stop
-			return nothing;
+			return (false, UrlDataset(Matrix(0), Vector{Int}(0), Vector{Int}(0), Vector{Int}(0)));
 		else
 			sbp.currentBatch += 1;
-			return loadSampleUrl(sbp.urls[start:stop], sbp.labels[start:stop]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T);
+			return (true, loadSampleUrl(sbp.urls[start:stop], sbp.labels[start:stop]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T));
 		end
 	end
 end
