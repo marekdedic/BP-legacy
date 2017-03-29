@@ -372,7 +372,7 @@ function nextBatch!(sbp::SampleBatchParser)::Tuple{Bool, UrlDataset}
 		start = min((sbp.currentBatch - 1) * sbp.batchSize + 1, length(sbp.urls));
 		stop = min(sbp.currentBatch * sbp.batchSize, length(sbp.urls));
 		if start == stop
-			return (false, UrlDataset(Matrix(0), Vector{Int}(0), Vector{Int}(0), Vector{Int}(0)));
+			return (false, UrlDataset(Matrix(0, 0), Vector{Int}(0), Vector{Int}(0), Vector{Int}(0)));
 		else
 			sbp.currentBatch += 1;
 			return (true, loadSampleUrl(sbp.urls[start:stop], sbp.labels[start:stop]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T));
