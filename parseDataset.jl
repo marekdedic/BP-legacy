@@ -440,7 +440,7 @@ end
 
 function parseSampleUrl(source::AbstractString, file::AbstractString = "dataset.jld")::Void
 	sbp = loadSampleUrl(source; batchSize = 0);
-	dataset = nextBatch!(sbp);
+	dataset = nextBatch!(sbp)[2];
 	JLD.save(file, "dataset", dataset);
 	return nothing;
 end
