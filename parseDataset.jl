@@ -5,26 +5,10 @@ import DataFrames;
 using EduNets;
 
 include("UrlDataset.jl");
+include("featureGenerators.jl");
 include("IterableParser.jl");
 
 # Helper functions
-
-"Generates an array of all the n-grams (substrings of length n) from a given string."
-function ngrams(input::AbstractString, n::Int)::Vector{AbstractString}
-	output = Vector{AbstractString}(0);
-	for (i, c) in enumerate(input)
-		push!(output, AbstractString(""));
-		output[i] = string(output[i], c);
-		for j in 1:(n - 1)
-			if i > j
-				output[i - j] = string(output[i - j], c);
-			end
-		end
-	end
-	return output;
-end
-
-trigrams(input::AbstractString)::Array{AbstractString} = ngrams(input, 3);
 
 "Separates a given URL into 3 parts - domain, query, and path."
 function separateUrl(url::AbstractString)::Tuple{AbstractVector{AbstractString}, AbstractVector{AbstractString}, AbstractVector{AbstractString}}
@@ -106,17 +90,6 @@ function setupAVClass(file::AbstractString)
 			end
 		end
 	end
-end
-
-# Feature generation functions
-
-function trigramFeatureGenerator(input::AbstractString, modulo::Int; T::DataType = Float32)::Array{Float32}
-	output = zeros(T, modulo);
-	for i in trigrams(input)
-		index = mod(hash(i), modulo);
-		output[index + 1] += 1;
-	end
-	return output;
 end
 
 # Labeling functions
