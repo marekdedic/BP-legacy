@@ -1,8 +1,6 @@
 import GZip;
 import JSON;
 import JLD;
-import DataFrames;
-using EduNets;
 
 include("UrlDataset.jl");
 include("featureGenerators.jl");
@@ -70,8 +68,8 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 end
 
 function loadThreatGridUrl(dir::AbstractString; batchSize::Int = 6000, featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::IterableParser
-	urls = Vector{Vector{AbstractString}};
-	labels = Vector{Int};
+	urls = Vector{Vector{AbstractString}}(0);
+	labels = Vector{Int}(0);
 	for (root, dirs, files) in walkdir(dir)
 		for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);

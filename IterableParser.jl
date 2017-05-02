@@ -26,7 +26,7 @@ function next(iter::IterableParser, state::Int)::Tuple{UrlDataset, Int}
 		start = (state - 1) * iter.batchSize + 1;
 		stop = min(state * iter.batchSize, length(iter.labels));
 	end
-	dataset = loadSampleUrl(iter.urls[start:stop], iter.labels[start:stop]; featureCount = iter.featureCount, featureGenerator = iter.featureGenerator, T = iter.T);
+	dataset = processDataset(iter.urls[start:stop], iter.labels[start:stop]; featureCount = iter.featureCount, featureGenerator = iter.featureGenerator, T = iter.T);
 	return (dataset, state + 1)
 end
 
