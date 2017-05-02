@@ -336,23 +336,8 @@ function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, f
 	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts; info = aggregatedInfo);
 end
 
-type SampleBatchParser
-	urls::Vector{AbstractString};
-	labels::Vector{Int};
-	batchSize::Int;
-	currentBatch::Int;
-
-	featureCount::Int;
-	featureGenerator::Function;
-	T::DataType;
-end
-
-function SampleBatchParser(urls::Vector{AbstractString}, labels::Vector{Int}, batchSize::Int; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)
-	return SampleBatchParser(urls, labels, batchSize, 1, featureCount, featureGenerator, T);
-end
-
 # Sample loading function - non-threaded version
-function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::SampleBatchParser
+function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::IterableParser
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
 	end
@@ -362,28 +347,7 @@ function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount
 
 	urls = table[:, 1];
 	labels = (table[:, 3].!="legit")+1;
-	return SampleBatchParser(convert(Vector{AbstractString}, urls), convert(Vector{Int}, labels), batchSize; featureCount = featureCount, featureGenerator = featureGenerator, T = T)
-end
-
-function nextBatch!(sbp::SampleBatchParser)::Tuple{Bool, UrlDataset}
-	if sbp.batchSize == 0
-		return (true, loadSampleUrl(sbp.urls, sbp.labels; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T));
-	else
-		start = min((sbp.currentBatch - 1) * sbp.batchSize + 1, length(sbp.urls));
-		stop = min(sbp.currentBatch * sbp.batchSize, length(sbp.urls));
-		if start == stop
-			return (false, loadSampleUrl(sbp.urls[start:stop], sbp.labels[start:stop]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T));
-		else
-			sbp.currentBatch += 1;
-			return (true, loadSampleUrl(sbp.urls[start:stop], sbp.labels[start:stop]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T));
-		end
-	end
-end
-
-function sampleBatch!(sbp::SampleBatchParser)::UrlDataset
-	sbp.currentBatch += 1;
-	perm = StatsBase.sample(1:length(sbp.urls), sbp.batchSize);
-	return loadSampleUrl(sbp.urls[perm], sbp.labels[perm]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T)
+	return IterableParser(convert(Vector{AbstractString}, urls), convert(Vector{Int}, labels), batchSize; featureCount = featureCount, featureGenerator = featureGenerator, T = T)
 end
 
 function loadSampleUrl(urls::Vector, labels::Vector; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::UrlDataset
@@ -445,9 +409,9 @@ function parseDatasetAVClassUrl(dir::AbstractString, file::AbstractString = "dat
 end
 
 function parseSampleUrl(source::AbstractString, file::AbstractString = "dataset.jld")::Void
-	sbp = loadSampleUrl(source; batchSize = 0);
-	dataset = nextBatch!(sbp)[2];
-	JLD.save(file, "dataset", dataset);
+	for i in loadSampleUrl(source; batchSize = 0)
+		JLD.save(file, "dataset", i);
+	end
 	return nothing;
 end
 
