@@ -79,80 +79,9 @@ function loadUrlFromJSON(file::AbstractString)::Vector{AbstractString}
 	return output;
 end
 
-"Sets up a global dictionary for AVClassResultParser, so that it doesn't have to be loaded every time."
-function setupAVClass(file::AbstractString)
-	global avclass_dict = Dict{String, String}();
-	open(file) do file
-		for line in eachline(file)
-			values = split(chomp(line), '\t');
-			if size(values)[1] > 2
-				avclass_dict[values[1]] = values[3];
-			end
-		end
-	end
-end
-
-# Labeling functions
-
-function countingResultParser(file::AbstractString; threshold::Int = 5)::Int
-	positiveCount = 0;
-	open(file) do f
-		json = JSON.parse(f);
-		try
-			scans = json["scans"];
-			try
-				if(scans["Malwarebytes"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-			try
-				if(scans["BitDefender"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end  
-			try
-				if(scans["Symantec"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-			try
-				if(scans["ESET-NOD32"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-			try
-				if(scans["Avast"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-			try
-				if(scans["Kaspersky"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-			try
-				if(scans["Avira"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-			try
-				if(scans["AVG"]["detected"] == true)
-					positiveCount += 1;
-				end
-			end
-		end
-	end
-	return positiveCount >= threshold ? 2 : 1;
-end
-
-function AVClassResultParser(file::AbstractString)::Int
-	result = get(avclass_dict, file, "");
-	return (result == "CLEAN" || result == "") ? 1 : 2;
-end
-
 # ThreatgridSample loading functions
 
-function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::SingleBagDataset
+function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::SingleBagDataset
 	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -166,7 +95,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
-				result = resultParser(filename * ".vt.json");
+				result = labeller(filename * ".vt.json");
 				for url in urls
 					push!(featureMatrix[Threads.threadid()], featureGenerator(url, featureCount; T = T));
 					push!(results[Threads.threadid()], result);
@@ -189,7 +118,7 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
+function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::UrlDataset
 	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -205,7 +134,7 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
 				urls = loadUrlFromJSON(filename * ".joy.json.gz");
-				result = resultParser(filename * ".vt.json");
+				result = labeller(filename * ".vt.json");
 				for url in urls
 					(domain, path, query) = separateUrl(url);
 					for i in domain
@@ -246,7 +175,7 @@ function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featur
 end
 
 # Sample loading function
-function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, resultParser::Function = countingResultParser, T::DataType = Float32)::UrlDataset
+function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::UrlDataset
 	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
 	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
 	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
@@ -370,14 +299,14 @@ end
 
 function parseDatasetAVClass(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
 	setupAVClass("avclass_results.txt");
-	dataset = loadThreatGrid(dir, resultParser = AVClassResultParser);
+	dataset = loadThreatGrid(dir, labeller = AVClassLabeller);
 	JLD.save(file, "dataset", dataset);
 	return nothing;
 end
 
 function parseDatasetAVClassUrl(dir::AbstractString, file::AbstractString = "dataset.jld")::Void
 	setupAVClass("avclass_results.txt");
-	dataset = loadThreatGridUrl(dir, resultParser = AVClassResultParser);
+	dataset = loadThreatGridUrl(dir, labeller = AVClassLabeller);
 	JLD.save(file, "dataset", dataset);
 	return nothing;
 end
