@@ -5,6 +5,7 @@ import DataFrames;
 using EduNets;
 
 include("UrlDataset.jl");
+include("IterableParser.jl");
 
 # Helper functions
 

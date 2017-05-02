@@ -34,7 +34,7 @@ function done(iter::IterableParser, state::Int)::Bool
 	if iter.batchSize == 0
 		return state > 1;
 	end
-	return state > cld(length(iter.labels), batchSize);
+	return state > cld(length(iter.labels), iter.batchSize);
 end
 
 function sample(iter::IterableParser)
