@@ -380,6 +380,12 @@ function nextBatch!(sbp::SampleBatchParser)::Tuple{Bool, UrlDataset}
 	end
 end
 
+function sampleBatch!(sbp::SampleBatchParser)::UrlDataset
+	sbp.currentBatch += 1;
+	perm = StatsBase.sample(1:length(sbp.urls), sbp.batchSize);
+	return loadSampleUrl(sbp.urls[perm], sbp.labels[perm]; featureCount = sbp.featureCount, featureGenerator = sbp.featureGenerator, T = sbp.T)
+end
+
 function loadSampleUrl(urls::Vector, labels::Vector; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::UrlDataset
 	featureMatrix = Vector{Vector{T}}(0);
 	results = Vector{Int}(0);
