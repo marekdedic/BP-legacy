@@ -118,128 +118,23 @@ function loadThreatGrid(dir::AbstractString; featureCount::Int = 2053, featureGe
 	return SingleBagDataset(aggregatedFeatures, aggregatedResults, aggregatedBags);
 end
 
-function loadThreatGridUrl(dir::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::UrlDataset
-	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
-	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
-	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
-	urlParts = [Vector{Int}(0) for i in 1:Threads.nthreads()];
-	maxBag = [1 for i in 1:Threads.nthreads()];
-	aggregatedFeatures = Matrix{T}(featureCount, 0);
-	aggregatedResults = Vector{Int}(0);
-	aggregatedBags = Vector{Int}(0);
-	aggregatedUrlParts = Vector{Int}(0);
+function loadThreatGridUrl(dir::AbstractString; batchSize::Int = 6000, featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::IterableParser
+	urls = Vector{Vector{AbstractString}};
+	labels = Vector{Int};
 	for (root, dirs, files) in walkdir(dir)
-		Threads.@threads for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
+		for file in filter(x-> ismatch(r"\.joy\.json\.gz$", x), files)
 			path = joinpath(root, file);
 			filename = replace(path, r"^(.*)\.joy\.json\.gz$", s"\1");
 			if isfile(filename * ".vt.json")
-				urls = loadUrlFromJSON(filename * ".joy.json.gz");
-				result = labeller(filename * ".vt.json");
-				for url in urls
-					(domain, path, query) = separateUrl(url);
-					for i in domain
-						push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
-						push!(results[Threads.threadid()], result);
-						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-						push!(urlParts[Threads.threadid()], 1);
-					end
-					for i in path
-						push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
-						push!(results[Threads.threadid()], result);
-						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-						push!(urlParts[Threads.threadid()], 2);
-					end
-					for i in query
-						push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
-						push!(results[Threads.threadid()], result);
-						push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-						push!(urlParts[Threads.threadid()], 3);
-					end
-					maxBag[Threads.threadid()] += 1;
-				end
+				push!(urls, loadUrlFromJSON(filename * ".joy.json.gz"));
+				push!(labels, labeller(filename * ".vt.json"));
 			end
 		end
 	end
-	for i in 1:Threads.nthreads()
-		features = hcat(featureMatrix[i]...);
-		if length(size(features)) != 2
-			continue;
-		end
-		aggregatedFeatures = hcat(aggregatedFeatures, features);
-		aggregatedResults = vcat(aggregatedResults, results[i]);
-		bags[i] += size(aggregatedBags)[1];
-		aggregatedBags = vcat(aggregatedBags, bags[i]);
-		aggregatedUrlParts = vcat(aggregatedUrlParts, urlParts[i]);
-	end
-	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts);
+	return IterableParser(vcat(urls...), labels, batchSize; featureCount = featureCount, featureGenerator = featureGenerator, T = T)
 end
 
 # Sample loading function
-function loadSampleUrlThreaded(file::AbstractString; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, labeller::Function = countingLabeller, T::DataType = Float32)::UrlDataset
-	featureMatrix = [Vector{Vector{T}}(0) for i in 1:Threads.nthreads()];
-	results = [Vector{Int}(0) for i in 1:Threads.nthreads()];
-	bags = [Vector{Int}(0) for i in 1:Threads.nthreads()];
-	urlParts = [Vector{Int}(0) for i in 1:Threads.nthreads()];
-	info = [Vector{AbstractString}(0) for i in 1:Threads.nthreads()];
-	maxBag = [1 for i in 1:Threads.nthreads()];
-	aggregatedFeatures = Matrix{T}(featureCount, 0);
-	aggregatedResults = Vector{Int}(0);
-	aggregatedBags = Vector{Int}(0);
-	aggregatedUrlParts = Vector{Int}(0);
-	aggregatedInfo = Vector{AbstractString}(0);
-
-	table = GZip.open(file,"r") do fid
-		readcsv(fid)
-	end
-	if any(table[:, 3].!="legit")
-		table=table[table[:, 3].!="legit",:]
-	end
-
-	table=table[1:min(size(table,1),6000),:]
-	urls = table[:, 1];
-	labels = (table[:, 3].!="legit")+1;
-	#Threads.@threads for j in 1:size(labels, 1)
-	for j in 1:size(labels, 1)
-		(domain, path, query) = separateUrl(urls[j]);
-		for i in domain
-			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
-			push!(results[Threads.threadid()], labels[j]);
-			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-			push!(urlParts[Threads.threadid()], 1);
-			push!(info[Threads.threadid()], urls[j]);
-		end
-		for i in path
-			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
-			push!(results[Threads.threadid()], labels[j]);
-			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-			push!(urlParts[Threads.threadid()], 2);
-			push!(info[Threads.threadid()], urls[j]);
-		end
-		for i in query
-			push!(featureMatrix[Threads.threadid()], featureGenerator(i, featureCount; T = T));
-			push!(results[Threads.threadid()], labels[j]);
-			push!(bags[Threads.threadid()], maxBag[Threads.threadid()]);
-			push!(urlParts[Threads.threadid()], 3);
-			push!(info[Threads.threadid()], urls[j]);
-		end
-		maxBag[Threads.threadid()] += 1;
-	end
-	for i in 1:Threads.nthreads()
-		features = hcat(featureMatrix[i]...);
-		if length(size(features)) != 2
-			continue;
-		end
-		aggregatedFeatures = hcat(aggregatedFeatures, features);
-		aggregatedResults = vcat(aggregatedResults, results[i]);
-		bags[i] += size(aggregatedBags)[1];
-		aggregatedBags = vcat(aggregatedBags, bags[i]);
-		aggregatedUrlParts = vcat(aggregatedUrlParts, urlParts[i]);
-		aggregatedInfo = vcat(aggregatedInfo, info[i]);
-	end
-	return UrlDataset(aggregatedFeatures, aggregatedResults, aggregatedBags, aggregatedUrlParts; info = aggregatedInfo);
-end
-
-# Sample loading function - non-threaded version
 function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::IterableParser
 	table = GZip.open(file,"r") do fid
 		readcsv(fid)
@@ -253,7 +148,7 @@ function loadSampleUrl(file::AbstractString; batchSize::Int = 6000, featureCount
 	return IterableParser(convert(Vector{AbstractString}, urls), convert(Vector{Int}, labels), batchSize; featureCount = featureCount, featureGenerator = featureGenerator, T = T)
 end
 
-function loadSampleUrl(urls::Vector, labels::Vector; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::UrlDataset
+function processDataset(urls::Vector, labels::Vector; featureCount::Int = 2053, featureGenerator::Function = trigramFeatureGenerator, T::DataType = Float32)::UrlDataset
 	featureMatrix = Vector{Vector{T}}(0);
 	results = Vector{Int}(0);
 	bags = Vector{Int}(0);

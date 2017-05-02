@@ -39,5 +39,5 @@ end
 
 function sample(iter::IterableParser)
 	perm = StatsBase.sample(1:length(iter.urls), iter.batchSize);
-	return loadSampleUrl(iter.urls[perm], iter.labels[perm]; featureCount = iter.featureCount, featureGenerator = iter.featureGenerator, T = iter.T)
+	return processDataset(iter.urls[perm], iter.labels[perm]; featureCount = iter.featureCount, featureGenerator = iter.featureGenerator, T = iter.T)
 end
