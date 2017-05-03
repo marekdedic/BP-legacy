@@ -1,5 +1,5 @@
 "Separates a given URL into 3 parts - domain, query, and path."
-function separateUrl(url::AbstractString)::Tuple{AbstractVector{AbstractString}, AbstractVector{AbstractString}, AbstractVector{AbstractString}}
+function separateUrl(url::AbstractString)::Tuple{Vector{AbstractString}, Vector{AbstractString}, Vector{AbstractString}}
 	if contains(url, "://")
 		splitted = split(url, "://");
 		url = splitted[2];
@@ -12,16 +12,15 @@ function separateUrl(url::AbstractString)::Tuple{AbstractVector{AbstractString},
 		portSplit = split(rawDomain, ":");
 		rawDomain = portSplit[1];
 		portSplit = portSplit[2:end];
-		IP = ""
-		for i::Int in 1:(length(rawDomain)/2)
-			c = Char(parse(Int32, rawDomain[(2i - 1):2i], 16));
-			IP *= string(c);
+		IP = Vector{Char}(length(rawDomain)/2)
+		for i::Int in 1:length(IP)
+			IP[i] = Char(parse(Int32, rawDomain[(2i - 1):2i], 16));
 		end
 		for i in portSplit
-			IP *= i;
+			push!(IP, i);
 		end
 		domain = Vector{String}();
-		push!(domain, IP);
+		push!(domain, String(IP));
 	else
 		domain = split(rawDomain, ".");
 	end
