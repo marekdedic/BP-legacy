@@ -1,12 +1,8 @@
 "Generates an array of all the n-grams (substrings of length n) from a given string."
 function ngrams(input::AbstractString, n::Int)::Vector{AbstractString}
-	output = fill("", max(length(input) - n + 1, 0));
-	for (i, c) in enumerate(input)
-		for j in (i - n + 1):i
-			if j > 0 && j <= length(output)
-				output[j] = string(output[j], c);
-			end
-		end
+	output = Vector{AbstractString}(max(length(input) - n + 1, 0));
+	for i in 1:length(output)
+		output[i] = input[i:i + n - 1];
 	end
 	return output;
 end
