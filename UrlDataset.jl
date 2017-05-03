@@ -14,13 +14,15 @@ type UrlDataset{T<:AbstractFloat}<:AbstractDataset
 end
 
 function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, urlParts::Vector{Int}; info::Vector{AbstractString} = Vector{AbstractString}(0), T::DataType = Float32)::UrlDataset
-	permutation = sortperm(urlIDs);
-	features = features[:, permutation];
-	labels = labels[permutation];
-	urlIDs = urlIDs[permutation];
-	urlParts = urlParts[permutation];
-	if size(info, 1) != 0;
-		info = info[permutation];
+	if(!issorted(urlIDs))
+		permutation = sortperm(urlIDs);
+		features = features[:, permutation];
+		labels = labels[permutation];
+		urlIDs = urlIDs[permutation];
+		urlParts = urlParts[permutation];
+		if size(info, 1) != 0;
+			info = info[permutation];
+		end
 	end
 	subbags = findranges(urlIDs);
 
