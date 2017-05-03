@@ -12,15 +12,16 @@ function separateUrl(url::AbstractString)::Tuple{Vector{AbstractString}, Vector{
 		portSplit = split(rawDomain, ":");
 		rawDomain = portSplit[1];
 		portSplit = portSplit[2:end];
-		IP = Vector{Char}(length(rawDomain)/2)
+		IP = Vector{Char}(cld(length(rawDomain), 2))
 		for i::Int in 1:length(IP)
 			IP[i] = Char(parse(Int32, rawDomain[(2i - 1):2i], 16));
 		end
+		IPstr = String(IP);
 		for i in portSplit
-			push!(IP, i);
+			IPstr *= i;
 		end
 		domain = Vector{String}();
-		push!(domain, String(IP));
+		push!(domain, IPstr);
 	else
 		domain = split(rawDomain, ".");
 	end
