@@ -1,5 +1,5 @@
 using EduNets;
-import EduNets: update!, model2vector, model2vector!, forward!, gradient!, fgradient!;
+import EduNets: update!, model2vector!, model2vector, project!, forward!, fgradient!;
 
 type UrlModel{A<:Tuple, B<:Tuple, C<:Tuple, D<:Tuple}<:AbstractModel
 	domainModel::A;
@@ -29,6 +29,22 @@ end
 
 function model2vector(model::UrlModel)
 	vcat(model2vector(model.domainModel), model2vector(model.pathModel), model2vector(model.queryModel), model2vector(model.model))
+end
+
+function project!(model::UrlModel, dataset::UrlDataset)
+	od = forward!(model.domainModel, dataset.domains.x, (dataset.domains.bags,));
+	op = forward!(model.pathModel, dataset.paths.x, (dataset.paths.bags,));
+	oq = forward!(model.queryModel, dataset.queries.x, (dataset.queries.bags,));
+
+	o::StridedMatrix = Matrix{Float32}(size(od[end], 1) + size(op[end], 1) + size(oq[end], 1), size(od[end], 2))
+	dsize = size(od[end], 1);
+	psize = size(op[end], 1);
+	o[1:dsize, :] = od[end];
+	o[dsize + 1:dsize + psize, :] = op[end];
+	o[dsize + psize + 1:end, :] = oq[end];
+
+	oo = forward!(model.model, o)[end];
+	return oo;
 end
 
 function forward!(model::UrlModel, dataset::UrlDataset)
