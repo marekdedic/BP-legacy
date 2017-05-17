@@ -24,41 +24,22 @@ function UrlDataset(features::Matrix, labels::Vector{Int}, urlIDs::Vector{Int}, 
 			info = info[permutation];
 		end
 	end
-	subbags = findranges(urlIDs);
 
-	domainFeatures = Vector{Vector{T}}(0);
-	pathFeatures = Vector{Vector{T}}(0);
-	queryFeatures = Vector{Vector{T}}(0);
-	bagLabels = Vector{Int}(length(subbags));
+	(domainFeatures, pathFeatures, queryFeatures) = map(i->features[:, urlParts .== i], 1:3);
+	(domainBags, pathBags, queryBags) = map(i->findranges(urlIDs[urlParts .== i]), 1:3);
+
+	subbags = findranges(urlIDs);
+	bagLabels = map(b->maximum(labels[b]), subbags);
 	if size(info, 1) != 0;
-		bagInfo = Vector{AbstractString}(length(subbags));
+		bagInfo = map(b->info[b][1], subbags);
 	else
 		bagInfo = Vector{AbstractString}(0);
 	end
-	# TODO: Implement bags
-	bags = Vector{UnitRange{Int}}(length(subbags));
 
-	for (i, r) in enumerate(subbags)
-		for (j, part) in enumerate(urlParts[r])
-			if part == 1
-				push!(domainFeatures, features[:, first(r) + j - 1]);
-			elseif part == 2
-				push!(pathFeatures, features[:, first(r) + j - 1]);
-			elseif part == 3
-				push!(queryFeatures, features[:, first(r) + j - 1]);
-			end
-		end
-		bagLabels[i] = maximum(labels[r]);
-		if size(info, 1) != 0;
-			bagInfo[i] = info[r][1];
-		end
-		bags[i] = i:i;
-	end
-
-	domains = SortedSingleBagDataset(hcat(domainFeatures...), bagLabels, bags);
-	paths = SortedSingleBagDataset(hcat(pathFeatures...), bagLabels, bags);
-	queries = SortedSingleBagDataset(hcat(queryFeatures...), bagLabels, bags);
-	UrlDataset(domains, paths, queries, bagLabels, convert(DataFrames.DataFrame, reshape(bagInfo, length(bagInfo), 1)))
+	domains = SortedSingleBagDataset(domainFeatures, bagLabels, domainBags);
+	paths = SortedSingleBagDataset(pathFeatures, bagLabels, pathBags);
+	queries = SortedSingleBagDataset(queryFeatures, bagLabels, queryBags);
+	UrlDataset(domains, paths, queries, bagLabels, DataFrames.DataFrame(url = bagInfo))
 end
 
 function featureSize(dataset::UrlDataset)::Int
