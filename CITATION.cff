@@ -1,0 +1,55 @@
+cff-version: 1.2.0
+title: BP-legacy
+message: >-
+  Please cite this software using the metadata from
+  'preferred-citation'.
+type: software
+authors:
+  - given-names: Marek
+    family-names: Dědič
+    email: marek@dedic.eu
+    orcid: 'https://orcid.org/0000-0003-1021-8428'
+    affiliation: Czech Technical University in Prague / Cisco Systems, Inc.
+repository-code: 'https://github.com/marekdedic/BP-legacy'
+preferred-citation:
+  title: Hierarchical models of network traffic
+  type: thesis
+  thesis-type: "Bachelor thesis"
+  authors:
+    - given-names: Marek
+      family-names: Dědič
+      email: marek@dedic.eu
+      orcid: 'https://orcid.org/0000-0003-1021-8428'
+      affiliation: Czech Technical University in Prague / Cisco Systems, Inc.
+  date-published: "2017-08-30"
+  institution:
+    name: "Czech Technical University in Prague"
+    country: CZ
+  repository: "https://github.com/marekdedic/BP-text"
+  identifiers:
+    - type: url
+      value: 'http://hdl.handle.net/10467/75824'
+  abstract: >-
+    The current approach to the detection of unwanted
+    software by monitoring client traffic uses
+    handwritten features as part of the model. This
+    approach has several disadvantages. This thesis
+    proposes a fully automated classifier which
+    recognises malware activity at network connection
+    level. The multi-instance learning approach was
+    used in order to achieve this. As a part of this
+    thesis the multi-instance learning was
+    theoretically defined using two different
+    formalisms and current work in this field was
+    summarised. Subsequently, there was described the
+    hierarchical structure of an URL address which was
+    used as an input for the classifier. A model
+    reflecting this inherent hierarchical structure was
+    proposed and an explanation of how multi-instance
+    learning was utilised and modified was presented
+    together with the description of the implementation
+    of the model using neural networks. Methods of
+    classifier quality assessment were outlined. The
+    classifier presented here was compared with prior
+    art and the influence of model parameters on its
+    quality was assessed.
